@@ -24,26 +24,22 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.1, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
+
+
 # If you add more arguments, ReCodEx will keep them with your default values.
 
 
 def main(args: argparse.Namespace) -> float:
-    # Load the diabetes dataset.
     dataset = sklearn.datasets.load_diabetes()
 
-    # The input data are in `dataset.data`, targets are in `dataset.target`.
-
-    # If you want to learn about the dataset, you can print some information
-    # about it using `print(dataset.DESCR)`.
-    print(dataset.DESCR)
-
     data = dataset['data']
-    data_new = np.concatenate((data, np.ones((442,1))), axis=1)
+    data_new = np.concatenate((data, np.ones((442, 1))), axis=1)
     dataset['data'] = data_new
 
-
     target = dataset.get('target')
-    train, test, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'), target, test_size=args.test_size, random_state=args.seed)
+    train, test, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'), target,
+                                                                                      test_size=args.test_size,
+                                                                                      random_state=args.seed)
 
     weights = np.linalg.inv(train.transpose() @ train) @ train.transpose() @ train_target
 
