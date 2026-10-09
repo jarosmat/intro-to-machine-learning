@@ -47,8 +47,11 @@ def main(args: argparse.Namespace) -> float:
 
     weights = np.linalg.inv(train.transpose() @ train) @ train.transpose() @ train_target
 
-    # TODO: Predict target values on the test set.
-    ...
+    test_len = len(test)
+    test_res = np.zeros((test_len,))
+    for i in range(test_len):
+        res = test[i].transpose() @ weights
+        test_res[i] = res
 
     # TODO: Manually compute root mean square error on the test set predictions.
     rmse = ...
