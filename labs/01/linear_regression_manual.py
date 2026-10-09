@@ -35,6 +35,7 @@ def main(args: argparse.Namespace) -> float:
 
     # If you want to learn about the dataset, you can print some information
     # about it using `print(dataset.DESCR)`.
+    print(dataset.DESCR)
 
     data = dataset['data']
     data_new = np.concatenate((data, np.ones((442,1))), axis=1)
@@ -44,9 +45,7 @@ def main(args: argparse.Namespace) -> float:
     target = dataset.get('target')
     train, test, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'), target, test_size=args.test_size, random_state=args.seed)
 
-    # TODO: Solve the linear regression using the algorithm from the lecture,
-    # explicitly computing the matrix inverse (using `np.linalg.inv`).
-    ...
+    weights = np.linalg.inv(train.transpose() @ train) @ train.transpose() @ train_target
 
     # TODO: Predict target values on the test set.
     ...
