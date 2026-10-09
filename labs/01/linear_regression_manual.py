@@ -53,10 +53,15 @@ def main(args: argparse.Namespace) -> float:
         res = test[i].transpose() @ weights
         test_res[i] = res
 
-    # TODO: Manually compute root mean square error on the test set predictions.
-    rmse = ...
+    mse = np.float64(0)
+    for pred_res, instance_target in zip(test_res, test_target):
+        diff = pred_res - instance_target
+        mse += diff * diff
+    mse /= test_len
 
-    return rmse
+    rmse_res = np.ma.sqrt(mse)
+
+    return rmse_res
 
 
 if __name__ == "__main__":
