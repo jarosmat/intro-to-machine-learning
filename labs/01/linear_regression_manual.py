@@ -41,10 +41,8 @@ def main(args: argparse.Namespace) -> float:
     dataset['data'] = data_new
 
 
-    # TODO: Split the dataset into a train set and a test set.
-    # Use `sklearn.model_selection.train_test_split` method call, passing
-    # arguments `test_size=args.test_size, random_state=args.seed`.
-    ...
+    target = dataset.get('target')
+    train, test, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'), target, test_size=args.test_size, random_state=args.seed)
 
     # TODO: Solve the linear regression using the algorithm from the lecture,
     # explicitly computing the matrix inverse (using `np.linalg.inv`).
