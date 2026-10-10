@@ -57,7 +57,8 @@ def main(args: argparse.Namespace) -> list[float]:
         # TODO: Fit a linear regression model `sklearn.linear_model.LinearRegression(tol=1e-15)`
         # on the train set using the `fit` method. We use a stricter tolerance `tol=1e-15`
         # as the default tolerance is not sufficient when using features of higher order.
-        model = ...
+        model = sklearn.linear_model.LinearRegression(tol=1e-15)
+        reg =  model.fit(train_x, train_y)
 
         # TODO: Predict targets on the test set using the `predict` method of the trained model.
         ...
