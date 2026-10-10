@@ -33,14 +33,22 @@ parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdig
 
 def main(args: argparse.Namespace) -> list[float]:
     # Create artificial noisy data.
-    xs = np.linspace(0, 7, num=args.data_size)
+    n_samples = args.data_size
+    xs = np.linspace(0, 7, num=n_samples)
     ys = np.sin(xs) + np.random.RandomState(args.seed).normal(0, 0.2, size=args.data_size)
 
     rmses = []
+    feats = np.ones((n_samples,1))
     for order in range(1, args.range + 1):
         # TODO: Create features `(x^1, x^2, ..., x^order)`, preferably in this ordering.
         # Note that you can just append `x^order` to the features from the previous iteration.
-        ...
+        if order == 1:
+            for i, val in enumerate(xs):
+                feats[i,0] = val
+        else:
+            feats = np.hstack([feats, np.ones((n_samples, 1))])
+            for i, val in enumerate(xs):
+                feats[i, order - 1] = feats[i, order - 2] * val
 
         # TODO: Split the data into a train set and a test set.
         # Use `sklearn.model_selection.train_test_split` method call, passing
