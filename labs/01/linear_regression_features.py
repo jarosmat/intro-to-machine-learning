@@ -53,8 +53,7 @@ def main(args: argparse.Namespace) -> list[float]:
         # TODO: Split the data into a train set and a test set.
         # Use `sklearn.model_selection.train_test_split` method call, passing
         # arguments `test_size=args.test_size, random_state=args.seed`.
-        ...
-
+        train_x, test_x, train_y, test_y = sklearn.model_selection.train_test_split(feats, ys, test_size=args.test_size, random_state=args.seed)
         # TODO: Fit a linear regression model `sklearn.linear_model.LinearRegression(tol=1e-15)`
         # on the train set using the `fit` method. We use a stricter tolerance `tol=1e-15`
         # as the default tolerance is not sufficient when using features of higher order.
