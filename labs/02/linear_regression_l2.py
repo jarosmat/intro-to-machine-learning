@@ -41,12 +41,27 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
                                                                                                 random_state=args.seed)
 
     lambdas = np.geomspace(0.01, 10, num=500)
-    # TODO: Using `sklearn.linear_model.Ridge`, fit the train set using
+    # Using `sklearn.linear_model.Ridge`, fit the train set using
     # L2 regularization, employing the above defined lambdas.
     # For every model, compute the root mean squared error and return the
     # lambda producing lowest RMSE and the corresponding RMSE.
-    best_lambda = ...
-    best_rmse = ...
+    lam = lambdas[0] / 2
+    model = sklearn.linear_model.Ridge(alpha=lam).fit(train_data, train_target)
+    pred = model.predict(test_data)
+    best_lambda = lam
+    best_rmse = sklearn.metrics.root_mean_squared_error(test_target, pred)
+    rmses = [best_rmse]
+
+    for i in range(1, len(lambdas)):
+        lam = lambdas[i] / 2
+        model = sklearn.linear_model.Ridge(alpha=lam).fit(train_data, train_target)
+        pred = model.predict(test_data)
+        c_rmse = sklearn.metrics.root_mean_squared_error(test_target, pred)
+        rmses.append(c_rmse)
+        if c_rmse < best_rmse:
+            best_lambda = lam
+            best_rmse = c_rmse
+
 
     if args.plot:
         # This block is not required to pass in ReCodEx; however, it is useful
@@ -61,7 +76,6 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         plt.show() if args.plot is True else plt.savefig(args.plot, transparent=True, bbox_inches="tight")
 
     return best_lambda, best_rmse
-
 
 if __name__ == "__main__":
     main_args = parser.parse_args([] if "__file__" not in globals() else None)
