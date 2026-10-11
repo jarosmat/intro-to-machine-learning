@@ -48,10 +48,12 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
     data = np.concatenate((data, np.ones((data_rows,1))), axis=1)
     print(data)
 
-    # TODO: Split the dataset into a train set and a test set.
+    # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
-    train_data, test_data, train_target, test_target = ...
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(data, target,
+                                                                                                test_size=args.test_size,
+                                                                                                random_state=args.seed)
 
     # Generate initial linear regression weights.
     weights = generator.uniform(size=train_data.shape[1], low=-0.1, high=0.1)
