@@ -113,13 +113,13 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
          ]
     )
 
-    # TODO: Fit the feature preprocessing steps (the composed pipeline with all of
+    # Fit the feature preprocessing steps (the composed pipeline with all of
     # them; or the individual steps, if you prefer) on the training data (using `fit`).
     # Then transform the training data into `train_data` (with a `transform` call;
     # however, you can combine the two methods into a single `fit_transform` call).
     # Finally, transform testing data to `test_data`.
-    train_data = ...
-    test_data = ...
+    train_data = pipe.fit_transform(train_data)
+    test_data = pipe.transform(test_data)
 
     return train_data[:5], test_data[:5]
 
