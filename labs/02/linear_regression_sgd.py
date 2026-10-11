@@ -78,12 +78,13 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
             batch_stop = min(batch_stop + args.batch_size, train_data_len)
             batch_size = batch_stop - batch_start
             for i in range(batch_start, batch_stop):
-                c_data = train_data[i, :]
-                c_target = train_target[i]
+                c_data_id = permutation[i]
+                c_data = train_data[c_data_id, :]
+                c_target = train_target[c_data_id]
                 vect_sum += ((c_data.transpose() @ weights) - c_target) * c_data
             bias = weights[-1]
             weights[-1] = 0
-            weights_update = (args.learning_rate / batch_size) * vect_sum - args.learning_rate * args.l2 * weights
+            weights_update = (args.learning_rate / batch_size) * vect_sum + args.learning_rate * args.l2 * weights
             weights[-1] = bias
 
             weights -= weights_update
