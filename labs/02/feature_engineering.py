@@ -104,9 +104,14 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # which appends such polynomial features of order 2 to the given features.
     poly = sklearn.preprocessing.PolynomialFeatures(2, include_bias=False)
 
-    # TODO: You can wrap all the feature processing steps into one transformer
+    # You can wrap all the feature processing steps into one transformer
     # by using `sklearn.pipeline.Pipeline`. Although not strictly needed, it is
     # usually comfortable.
+    pipe = sklearn.pipeline.Pipeline(
+        [("Scale", column_transformer),
+         ("PolynomialFeatures", poly)
+         ]
+    )
 
     # TODO: Fit the feature preprocessing steps (the composed pipeline with all of
     # them; or the individual steps, if you prefer) on the training data (using `fit`).
