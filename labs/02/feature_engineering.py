@@ -23,12 +23,11 @@ import sklearn.pipeline
 import sklearn.preprocessing
 
 parser = argparse.ArgumentParser()
-# These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--dataset", default="diabetes", type=str, help="Standard sklearn dataset to load")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
-# If you add more arguments, ReCodEx will keep them with your default values.
+
 
 def is_col_int(data: np.ndarray, col: int) -> bool:
     for val in data[:, col]:
@@ -37,7 +36,7 @@ def is_col_int(data: np.ndarray, col: int) -> bool:
     return True
 
 
-def column_mask(data: np.ndarray) -> tuple[list[int],list[int]]:
+def column_mask(data: np.ndarray) -> tuple[list[int], list[int]]:
     _, col_c = data.shape
     res = []
     int_count = 0
@@ -49,6 +48,7 @@ def column_mask(data: np.ndarray) -> tuple[list[int],list[int]]:
             res.append(1)
 
     return res, [int_count, col_c]
+
 
 def sort_columns(data: np.ndarray, mask: list[int]):
     col_order = np.argsort(mask, kind='stable')
@@ -66,7 +66,9 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'),
-                                                                                                dataset.get('target'), test_size=args.test_size, random_state=args.seed)
+                                                                                                dataset.get('target'),
+                                                                                                test_size=args.test_size,
+                                                                                                random_state=args.seed)
     # Process the input columns in the following way:
     #
     # - if a column has only integer values, consider it a categorical column
@@ -89,11 +91,14 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     train_data = sort_columns(train_data, int_mask)
     test_data = sort_columns(test_data, int_mask)
 
-    column_transformer_list  = []
+    column_transformer_list = []
     if one_hot_end > 0:
-        column_transformer_list.append(("OneHot", sklearn.preprocessing.OneHotEncoder(sparse_output=False, handle_unknown="ignore"), slice(one_hot_end)))
+        column_transformer_list.append(
+            ("OneHot", sklearn.preprocessing.OneHotEncoder(sparse_output=False, handle_unknown="ignore"),
+             slice(one_hot_end)))
     if one_hot_end < standard_scaler_end:
-        column_transformer_list.append(("StandartScaler", sklearn.preprocessing.StandardScaler(), slice(one_hot_end, standard_scaler_end)))
+        column_transformer_list.append(
+            ("StandartScaler", sklearn.preprocessing.StandardScaler(), slice(one_hot_end, standard_scaler_end)))
     column_transformer = sklearn.compose.ColumnTransformer(column_transformer_list)
 
     # To the current features, append polynomial features of order 2.
