@@ -34,10 +34,11 @@ parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdig
 def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     dataset = getattr(sklearn.datasets, "load_{}".format(args.dataset))()
 
-    # TODO: Split the dataset into a train set and a test set.
+    # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
-
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'),
+                                                                                                dataset.get('target'), test_size=args.test_size, random_state=args.seed)
     # TODO: Process the input columns in the following way:
     #
     # - if a column has only integer values, consider it a categorical column
