@@ -22,7 +22,6 @@ import sklearn.metrics
 import sklearn.model_selection
 
 parser = argparse.ArgumentParser()
-# These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--batch_size", default=10, type=int, help="Batch size")
 parser.add_argument("--data_size", default=100, type=int, help="Data size")
 parser.add_argument("--epochs", default=50, type=int, help="Number of SGD training epochs")
@@ -32,7 +31,6 @@ parser.add_argument("--plot", default=False, const=True, nargs="?", type=str, he
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=92, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
-# If you add more arguments, ReCodEx will keep them with your default values.
 
 
 def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
@@ -46,8 +44,7 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
     # Then we do not need to explicitly represent bias - it becomes the last weight.
     data_rows, data_cols = data.shape
     data_cols += 1
-    data = np.concatenate((data, np.ones((data_rows,1))), axis=1)
-    print(data)
+    data = np.concatenate((data, np.ones((data_rows, 1))), axis=1)
 
     # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
@@ -76,12 +73,12 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
         batch_stop = 0
         train_data_len, _ = train_data.shape
         while batch_stop < train_data_len:
-            vect_sum = np.zeros((data_cols, ))
+            vect_sum = np.zeros((data_cols,))
             batch_start = batch_stop
             batch_stop = min(batch_stop + args.batch_size, train_data_len)
             batch_size = batch_stop - batch_start
             for i in range(batch_start, batch_stop):
-                c_data = train_data[i,:]
+                c_data = train_data[i, :]
                 c_target = train_target[i]
                 vect_sum += ((c_data.transpose() @ weights) - c_target) * c_data
             bias = weights[-1]
@@ -90,8 +87,6 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
             weights[-1] = bias
 
             weights -= weights_update
-
-
 
         # Append current RMSE on train/test to `train_rmses`/`test_rmses`.
         train_y = train_data @ weights
