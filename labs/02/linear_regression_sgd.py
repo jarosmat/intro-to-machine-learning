@@ -45,6 +45,7 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
     # Append a constant feature with value 1 to the end of all input data.
     # Then we do not need to explicitly represent bias - it becomes the last weight.
     data_rows, data_cols = data.shape
+    data_cols += 1
     data = np.concatenate((data, np.ones((data_rows,1))), axis=1)
     print(data)
 
@@ -62,7 +63,7 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
-        # TODO: Process the data in the order of `permutation`. For every
+        # Process the data in the order of `permutation`. For every
         # `args.batch_size` of them, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `len(train_data)`.
         #
@@ -72,6 +73,25 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
         #   where we set the bias to zero because the bias should not be regularized,
         # and the SGD update is
         #   weights = weights - args.learning_rate * gradient
+        batch_stop = 0
+        train_data_len, _ = train_data.shape
+        while batch_stop < train_data_len:
+            vect_sum = np.zeros((data_cols, ))
+            batch_start = batch_stop
+            batch_stop = min(batch_stop + args.batch_size, train_data_len)
+            batch_size = batch_stop - batch_start
+            for i in range(batch_start, batch_stop):
+                c_data = train_data[i,:]
+                c_target = train_target[i]
+                vect_sum += ((c_data.transpose() @ weights) - c_target) * c_data
+            bias = weights[-1]
+            weights[-1] = 0
+            weights_update = (args.learning_rate / batch_size) * vect_sum - args.learning_rate * args.l2 * weights
+            weights[-1] = bias
+
+            weights -= weights_update
+
+
 
         # TODO: Append current RMSE on train/test to `train_rmses`/`test_rmses`.
         train_rmses.append(...)
