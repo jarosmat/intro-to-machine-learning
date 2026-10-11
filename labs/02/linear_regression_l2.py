@@ -62,7 +62,6 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
             best_lambda = lam
             best_rmse = c_rmse
 
-
     if args.plot:
         # This block is not required to pass in ReCodEx; however, it is useful
         # to learn to visualize the results. If you collect the respective
@@ -76,6 +75,7 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         plt.show() if args.plot is True else plt.savefig(args.plot, transparent=True, bbox_inches="tight")
 
     return best_lambda, best_rmse
+
 
 if __name__ == "__main__":
     main_args = parser.parse_args([] if "__file__" not in globals() else None)
