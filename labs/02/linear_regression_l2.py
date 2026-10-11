@@ -22,21 +22,23 @@ import sklearn.metrics
 import sklearn.model_selection
 
 parser = argparse.ArgumentParser()
-# These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--plot", default=False, const=True, nargs="?", type=str, help="Plot the predictions")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=13, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
-# If you add more arguments, ReCodEx will keep them with your default values.
 
 
 def main(args: argparse.Namespace) -> tuple[float, float]:
     # Load the diabetes dataset.
     dataset = sklearn.datasets.load_diabetes()
 
-    # TODO: Split the dataset into a train set and a test set.
+    # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'),
+                                                                                                dataset.get('target'),
+                                                                                                test_size=args.test_size,
+                                                                                                random_state=args.seed)
 
     lambdas = np.geomspace(0.01, 10, num=500)
     # TODO: Using `sklearn.linear_model.Ridge`, fit the train set using
