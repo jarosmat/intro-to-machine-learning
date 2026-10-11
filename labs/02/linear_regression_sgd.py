@@ -101,9 +101,11 @@ def main(args: argparse.Namespace) -> tuple[list[float], float, float]:
         train_rmses.append(train_rmse)
         test_rmses.append(test_rmse)
 
-    # TODO: Compute into `explicit_rmse` test data RMSE when fitting
-    # `sklearn.linear_model.LinearRegression()` on `train_data` (ignoring `args.l2`).
-    explicit_rmse = ...
+    # Compute into `explicit_rmse` test data RMSE when fitting
+    # `sklearn.linear_model.LinearRegression` on `train_data` (ignoring `args.l2`).
+    model = sklearn.linear_model.LinearRegression().fit(train_data, train_target)
+    model_test_y = model.predict(test_data)
+    explicit_rmse = sklearn.metrics.root_mean_squared_error(test_target, model_test_y)
 
     if args.plot:
         import matplotlib.pyplot as plt
