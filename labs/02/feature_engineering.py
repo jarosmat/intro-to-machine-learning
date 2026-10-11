@@ -30,6 +30,34 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
 # If you add more arguments, ReCodEx will keep them with your default values.
 
+def is_col_int(data: np.ndarray, col: int) -> bool:
+    for val in data[:, col]:
+        if not val.is_integer():
+            return False
+    return True
+
+
+def column_mask(data: np.ndarray) -> tuple[list[int],list[int]]:
+    _, col_c = data.shape
+    res = []
+    int_count = 0
+    for i in range(col_c):
+        if is_col_int(data, i):
+            res.append(0)
+            int_count += 1
+        else:
+            res.append(1)
+
+    return res, [int_count, col_c]
+
+def sort_columns(data: np.ndarray, mask: list[int]):
+    col_order = np.argsort(mask, kind='stable')
+
+    if data.ndim == 1:
+        return data[mask]
+
+    return data[:, col_order]
+
 
 def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     dataset = getattr(sklearn.datasets, "load_{}".format(args.dataset))()
@@ -39,7 +67,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.get('data'),
                                                                                                 dataset.get('target'), test_size=args.test_size, random_state=args.seed)
-    # TODO: Process the input columns in the following way:
+    # Process the input columns in the following way:
     #
     # - if a column has only integer values, consider it a categorical column
     #   (days in a week, dog breed, ...; in general, integer values can also
@@ -55,6 +83,18 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # In the output, first there should be all the one-hot categorical features,
     # and then the real-valued features. To process different dataset columns
     # differently, you can use `sklearn.compose.ColumnTransformer`.
+    int_mask, type_ends = column_mask(dataset.get('data'))
+    one_hot_end = type_ends[0]
+    standard_scaler_end = type_ends[1]
+    train_data = sort_columns(train_data, int_mask)
+    test_data = sort_columns(test_data, int_mask)
+
+    column_transformer_list  = []
+    if one_hot_end > 0:
+        column_transformer_list.append(("OneHot", sklearn.preprocessing.OneHotEncoder(sparse_output=False, handle_unknown="ignore"), slice(one_hot_end)))
+    if one_hot_end < standard_scaler_end:
+        column_transformer_list.append(("StandartScaler", sklearn.preprocessing.StandardScaler(), slice(one_hot_end, standard_scaler_end)))
+    column_transformer = sklearn.compose.ColumnTransformer(column_transformer_list)
 
     # TODO: To the current features, append polynomial features of order 2.
     # If the input values are `[a, b, c, d]`, you should append
