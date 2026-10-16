@@ -142,7 +142,13 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as model_file:
-            pickle.dump(model, model_file)
+            pickle.dump(
+                {
+                    "model": model,
+                    "col_transformer": col_transformer,
+                    "poly": poly
+                }
+            , model_file)
 
     else:
         # Use the model and return test set predictions, either as a Python list or a NumPy array.
