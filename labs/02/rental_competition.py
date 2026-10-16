@@ -65,6 +65,9 @@ class Dataset:
         for key, value in dataset.items():
             setattr(self, key, value)
 
+def create_poly_features(degree:int) -> sklearn.preprocessing.PolynomialFeatures:
+    return sklearn.preprocessing.PolynomialFeatures(degree=degree, include_bias=True)
+
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
     if args.predict is None:
