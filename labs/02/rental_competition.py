@@ -155,12 +155,16 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         test = Dataset(args.predict)
 
         with lzma.open(args.model_path, "rb") as model_file:
-            model = pickle.load(model_file)
+            saved_data = pickle.load(model_file)
+            model = saved_data["model"]
+            poly = saved_data["poly"]
+            col_transformer = saved_data["col_transformer"]
+            # Generate `predictions` with the test set predictions.
+            one_hot_test = col_transformer.transform(test.data)
+            poly_test_data = poly.transform(one_hot_test)
+            predictions = model.predict(poly_test_data)
 
-        # TODO: Generate `predictions` with the test set predictions.
-        predictions = ...
-
-        return predictions
+            return predictions
 
 
 if __name__ == "__main__":
