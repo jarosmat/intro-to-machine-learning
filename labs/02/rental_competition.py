@@ -23,6 +23,7 @@ import urllib.request
 
 import numpy as np
 import numpy.typing as npt
+import sklearn
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
@@ -70,6 +71,18 @@ def create_poly_features(degree:int) -> sklearn.preprocessing.PolynomialFeatures
 
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
+    DEFAULT_POLY_FEATURES = 2
+    ALPHA_LOW_POW = -3
+    ALPHA_TOP_POW = 4
+    ALPHA_BASE = 10
+    ALPHA_RANGES = [ALPHA_BASE**d for d in range(ALPHA_LOW_POW, ALPHA_TOP_POW)]
+    one_hot = ("OneHot", sklearn.preprocessing.OneHotEncoder(sparse_output=False, handle_unknown="ignore"), slice(8))
+    column_transformer_list = [one_hot]
+
+    col_transformer = sklearn.compose.ColumnTransformer(column_transformer_list)
+    poly = create_poly_features(DEFAULT_POLY_FEATURES)
+
+
     if args.predict is None:
         # We are training a model.
         np.random.seed(args.seed)
