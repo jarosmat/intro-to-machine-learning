@@ -71,7 +71,8 @@ def create_poly_features(degree:int) -> sklearn.preprocessing.PolynomialFeatures
 
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
-    DEFAULT_POLY_FEATURES = 2
+    MAX_POLY_FEATURES = 4
+    DEFAULT_POLY_FEATURES = 3
     ALPHA_LOW_POW = -3
     ALPHA_TOP_POW = 4
     ALPHA_BASE = 10
