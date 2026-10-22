@@ -48,11 +48,24 @@ def main(args: argparse.Namespace) -> np.ndarray:
     while not done:
         permutation = generator.permutation(data.shape[0])
 
-        # TODO: Implement the perceptron algorithm, notably one iteration
+        # Implement the perceptron algorithm, notably one iteration
         # over the training data in the order of `permutation`. During the
         # training data iteration, perform the required updates to the `weights`
         # for incorrectly classified examples. If all training instances are
         # correctly classified, set `done=True`, otherwise set `done=False`.
+
+        done = True
+        for i in permutation:
+            x_val = data[i]
+            c_target = target[i]
+
+            comp_res = x_val @ weights
+            if comp_res * c_target <= 0:
+                weights = weights + c_target * x_val
+                done = False
+
+
+
 
         if args.plot and not done:
             import matplotlib.pyplot as plt
