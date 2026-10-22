@@ -37,8 +37,9 @@ def main(args: argparse.Namespace) -> np.ndarray:
         n_clusters_per_class=1, flip_y=0, class_sep=2, random_state=args.seed)
     target = 2 * target - 1
 
-    # TODO: Append a constant feature with value 1 to the end of all input data.
+    # Append a constant feature with value 1 to the end of all input data.
     # Then we do not need to explicitly represent bias - it becomes the last weight.
+    data = np.concatenate((data, np.ones((data.shape[0], 1))), axis=1)
 
     # Generate initial perceptron weights.
     weights = np.zeros(data.shape[1])
