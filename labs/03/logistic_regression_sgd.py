@@ -56,9 +56,20 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
-        # TODO: Process the data in the order of `permutation`. For every
+        # Process the data in the order of `permutation`. For every
         # `args.batch_size` of them, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
+        batch_start = 0
+        while batch_start < permutation.size:
+            batch_size = min(args.batch_size, permutation.size - batch_start)
+            data_view = train_data[batch_start:(batch_start + batch_size)]
+            target_view = train_target[batch_start:(batch_start + batch_size)]
+            g = (1 / batch_size) * sum([(x @ weights - t) * x for x, t in zip(data_view, target_view)])
+
+            weights = weights - args.learning_rate * g
+
+            batch_start += args.batch_size
+
 
         # TODO: After the SGD epoch, measure the average loss and accuracy for both the
         # train set and the test set. The loss is the average MLE loss (i.e., the
