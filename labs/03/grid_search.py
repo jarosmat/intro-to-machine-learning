@@ -44,7 +44,7 @@ def main(args: argparse.Namespace) -> float:
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed)
 
-    # TODO: Create a pipeline, which
+    # Create a pipeline, which
     # 1. passes the inputs through `sklearn.preprocessing.MinMaxScaler()`,
     # 2. passes the result through `sklearn.preprocessing.PolynomialFeatures()`,
     # 3. passes the result through `sklearn.linear_model.LogisticRegression(random_state=args.seed)`.
@@ -59,7 +59,21 @@ def main(args: argparse.Namespace) -> float:
     # For the best combination of parameters, compute the test set accuracy.
     #
     # The easiest way is to use `sklearn.model_selection.GridSearchCV`.
-    test_accuracy = ...
+    pipe_parts = [('scaler', sklearn.preprocessing.MinMaxScaler()), ('poly',sklearn.preprocessing.PolynomialFeatures()), ('LogReg', sklearn.linear_model.LogisticRegression(random_state=args.seed))]
+    pipe = sklearn.pipeline.Pipeline(pipe_parts)
+
+    fold = sklearn.model_selection.StratifiedKFold(5)
+    params = {
+        'poly__degree' :[1,2],
+        'LogReg__C': [0.01,1,100],
+        'LogReg__solver': ['lbfgs', 'sag']
+    }
+
+    grid_search = sklearn.model_selection.GridSearchCV(pipe, params, cv=fold)
+
+    grid_search.fit(train_data, train_target)
+
+    test_accuracy = grid_search.score(test_data, test_target)
 
     # If `model` is a fitted `GridSearchCV`, you can use the following code
     # to show the results of all the hyperparameter values evaluated:
