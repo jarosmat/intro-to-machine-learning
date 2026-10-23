@@ -29,7 +29,37 @@ parser.add_argument("--learning_rate", default=0.01, type=float, help="Learning 
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=244, type=int, help="Random seed")
 parser.add_argument("--test_size", default=797, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
+
+
 # If you add more arguments, ReCodEx will keep them with your default values.
+
+def softmax(val: list[np.float64], const: np.float64):
+    transformed = [np.exp(z_i - const) for z_i in val]
+    val_sum = sum(transformed)
+    return np.array([t / val_sum for t in transformed])
+
+
+def get_softmax_vals(data: list[np.float64], weights_c: list[np.float64]):
+    transformed = [x.T @ weights_c for x in data]
+    return [softmax(y, max(y)) for y in transformed]
+
+
+def get_accuracy(softmax_vals: list[np.float64], target: list[np.float64]):
+    def accurate(comp_val: int, actual_val: np.float64):
+        if comp_val == actual_val:
+            return 1
+
+        return 0
+
+    val_size = len(target)
+
+    return sum([accurate(np.argmax(sig), act_val) for sig, act_val in zip(softmax_vals, target)]) / val_size
+
+
+def get_loss(softmax_vals: list[np.float64], target: list[np.float64]):
+    val_size = len(target)
+
+    return sum([- np.log(sig_val[target]) for sig_val, target in zip(softmax_vals, target)]) / val_size
 
 
 def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]]]:
@@ -52,10 +82,11 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     # Generate initial model weights.
     weights = generator.uniform(size=[train_data.shape[1], args.classes], low=-0.1, high=0.1)
 
+    train_data_size = train_data.shape[0]
     for epoch in range(args.epochs):
-        permutation = generator.permutation(train_data.shape[0])
+        permutation = generator.permutation(train_data_size)
 
-        # TODO: Process the data in the order of `permutation`. For every
+        # Process the data in the order of `permutation`. For every
         # `args.batch_size` of them, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
         #
@@ -64,14 +95,39 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         # $softmax(z) = softmax(z + any_constant)$ and compute $softmax(z) = softmax(z - maximum_of_z)$.
         # That way we only exponentiate non-positive values, and overflow does not occur.
 
-        # TODO: After the SGD epoch, measure the average loss and accuracy for both the
+        batch_start = 0
+        while batch_start < train_data_size:
+            batch_sum = np.zeros((train_data.shape[1], args.classes))
+            batch_size = min(args.batch_size, train_data_size - batch_start)
+            for i in range(batch_start, batch_start + batch_size):
+                j = permutation[i]
+                x_data = train_data[j, :]
+                x_data = x_data.reshape(-1, 1)
+                t_data = np.zeros((args.classes, 1))
+                t_data[train_target[j]] = 1
+                to_softmax = x_data.T @ weights
+                y_data = softmax(to_softmax[0], max(to_softmax[0]))
+                batch_sum += x_data @ (y_data - t_data.T)
+
+            batch_start += batch_size
+
+            weights = weights - args.learning_rate * (1 / batch_size) * batch_sum
+
+        # After the SGD epoch, measure the average loss and accuracy for both the
         # train test and the test set. The loss is the average MLE loss (i.e., the
         # negative log-likelihood, or cross-entropy loss, or KL loss) per example.
-        train_accuracy, train_loss, test_accuracy, test_loss = ...
+        softmax_vals_train = get_softmax_vals(train_data, weights)
+        softmax_vals_test = get_softmax_vals(test_data, weights)
+
+        train_accuracy = get_accuracy(softmax_vals_train, train_target)
+        train_loss = get_loss(softmax_vals_train, train_target)
+
+        test_accuracy = get_accuracy(softmax_vals_test, test_target)
+        test_loss = get_loss(softmax_vals_test, test_target)
 
         print("After epoch {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(
             epoch + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
-
+    print(train_data.shape)
     return weights, [(train_loss, 100 * train_accuracy), (test_loss, 100 * test_accuracy)]
 
 
