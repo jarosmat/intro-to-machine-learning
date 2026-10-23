@@ -30,7 +30,44 @@ parser.add_argument("--plot", default=False, const=True, nargs="?", type=str, he
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
+
+
 # If you add more arguments, ReCodEx will keep them with your default values.
+
+def sigmoid(val: np.float64):
+    return 1 / (1 + np.exp(-val))
+
+
+def get_sigmoid_vals(data: list[np.float64], weights_c: list[np.float64]):
+    return [sigmoid(x @ weights_c) for x in data]
+
+
+def get_accuracy(sigmoid_vals: list[np.float64], target: list[np.float64]):
+    def accurate(comp_val: np.float64, actual_val: np.float64):
+        cls = 0
+        if comp_val >= 0.5:
+            cls = 1
+
+        if cls == actual_val:
+            return 1
+
+        return 0
+
+    val_size = len(sigmoid_vals)
+
+    return sum([accurate(sig, act_val) for sig, act_val in zip(sigmoid_vals, target)]) / val_size
+
+
+def get_loss(sigmoid_vals: list[np.float64], target: list[np.float64]):
+    def sample_loss(actual_target, comp_sig):
+        if actual_target == 1:
+            return comp_sig
+
+        return 1 - comp_sig
+
+    val_size = len(sigmoid_vals)
+
+    return sum([- np.log(sample_loss(target, sig_val)) for sig_val, target in zip(sigmoid_vals, target)]) / val_size
 
 
 def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]]]:
@@ -40,7 +77,6 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     # Generate an artificial classification dataset.
     data, target = sklearn.datasets.make_classification(
         n_samples=args.data_size, n_features=2, n_informative=2, n_redundant=0, random_state=args.seed)
-
     # Append a constant feature with value 1 to the end of all input data.
     # Then we do not need to explicitly represent bias - it becomes the last weight.
     data = np.concatenate((data, np.ones((data.shape[0], 1))), axis=1)
@@ -48,7 +84,9 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
-    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(data, target,test_size=args.test_size, random_state=args.seed)
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(data, target,
+                                                                                                test_size=args.test_size,
+                                                                                                random_state=args.seed)
 
     # Generate initial logistic regression weights.
     weights = generator.uniform(size=train_data.shape[1], low=-0.1, high=0.1)
@@ -62,19 +100,32 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         batch_start = 0
         while batch_start < permutation.size:
             batch_size = min(args.batch_size, permutation.size - batch_start)
-            data_view = train_data[batch_start:(batch_start + batch_size)]
-            target_view = train_target[batch_start:(batch_start + batch_size)]
-            g = (1 / batch_size) * sum([(x @ weights - t) * x for x, t in zip(data_view, target_view)])
+            batch_sum = np.zeros(weights.shape)
 
-            weights = weights - args.learning_rate * g
+            for k in range(batch_start, batch_start + batch_size):
+                i = permutation[k]
+                x = train_data[i]
+                t = train_target[i]
+                scalar = x @ weights
+                sig_scalar = sigmoid(scalar)
+                batch_sum += (-t + t * sig_scalar + sig_scalar - t * sig_scalar) * x
+
+            weights = weights - args.learning_rate * (1 / batch_size) * batch_sum
 
             batch_start += args.batch_size
 
-
-        # TODO: After the SGD epoch, measure the average loss and accuracy for both the
+        #  After the SGD epoch, measure the average loss and accuracy for both the
         # train set and the test set. The loss is the average MLE loss (i.e., the
         # negative log-likelihood, or cross-entropy loss, or KL loss) per example.
-        train_accuracy, train_loss, test_accuracy, test_loss = ...
+
+        train_sigmoid_vals = get_sigmoid_vals(train_data, weights)
+        test_sigmoid_vals = get_sigmoid_vals(test_data, weights)
+
+        train_accuracy = get_accuracy(train_sigmoid_vals, train_target)
+        train_loss = get_loss(train_sigmoid_vals, train_target)
+
+        test_accuracy = get_accuracy(test_sigmoid_vals, test_target)
+        test_loss = get_loss(test_sigmoid_vals, test_target)
 
         print("After epoch {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(
             epoch + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
@@ -82,8 +133,8 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         if args.plot:
             import matplotlib.pyplot as plt
             if args.plot is not True:
-                plt.gcf().get_axes() or plt.figure(figsize=(6.4*3, 4.8*(args.epochs+2)//3))
-                plt.subplot(3, (args.epochs+2)//3, 1 + epoch)
+                plt.gcf().get_axes() or plt.figure(figsize=(6.4 * 3, 4.8 * (args.epochs + 2) // 3))
+                plt.subplot(3, (args.epochs + 2) // 3, 1 + epoch)
             xs = np.linspace(np.min(data[:, 0]), np.max(data[:, 0]), 50)
             ys = np.linspace(np.min(data[:, 1]), np.max(data[:, 1]), 50)
             predictions = [[1 / (1 + np.exp(-([x, y, 1] @ weights))) for x in xs] for y in ys]
