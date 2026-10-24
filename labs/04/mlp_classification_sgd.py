@@ -160,9 +160,12 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
 
             batch_start += batch_size
 
-        # TODO: After the SGD epoch, measure the accuracy for both the
+        # After the SGD epoch, measure the accuracy for both the
         # train test and the test set.
-        train_accuracy, test_accuracy = ...
+        softmax_vals_train = np.fromiter((forward(vals)[1] for vals in train_data), np.ndarray)
+        softmax_vals_test = np.fromiter((forward(vals)[1] for vals in test_data), np.ndarray)
+        train_accuracy, test_accuracy = (get_accuracy(softmax_vals_train, train_target),
+                                         get_accuracy(softmax_vals_test, test_target))
 
         print("After epoch {}: train acc {:.1f}%, test acc {:.1f}%".format(
             epoch + 1, 100 * train_accuracy, 100 * test_accuracy))
