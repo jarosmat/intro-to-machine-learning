@@ -32,6 +32,15 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=797, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
 # If you add more arguments, ReCodEx will keep them with your default values.
 
+def get_relu_vals(vals):
+    return np.fromiter((max(0, val) for val in vals), np.float64)
+
+
+def softmax(val: list[np.float64], const: np.float64):
+    transformed = [np.exp(z_i - const) for z_i in val]
+    val_sum = sum(transformed)
+    return np.fromiter((t / val_sum for t in transformed), np.float64)
+
 
 def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]:
     # Create a random generator with a given seed.
@@ -52,7 +61,7 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
     biases = [np.zeros(args.hidden_layer), np.zeros(args.classes)]
 
     def forward(inputs):
-        # TODO: Implement forward propagation, returning *both* the value of the hidden
+        # Implement forward propagation, returning *both* the value of the hidden
         # layer and the value of the output layer.
         #
         # We assume a neural network with a single hidden layer of size `args.hidden_layer`
@@ -66,7 +75,11 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         # in softmax can easily overflow. To avoid it, you should use the fact that
         # $softmax(z) = softmax(z + any_constant)$ and compute $softmax(z) = softmax(z - maximum_of_z)$.
         # That way we only exponentiate values which are non-positive, and overflow does not occur.
-        raise NotImplementedError()
+        hidden = get_relu_vals(inputs @ weights[0] + biases[0])
+        hidden = hidden.reshape(1, -1)
+        out = hidden @ weights[1] + biases[1]
+
+        return hidden, softmax(out[0], max(out[0]))
 
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
