@@ -42,6 +42,18 @@ def softmax(val: list[np.float64], const: np.float64):
     return np.fromiter((t / val_sum for t in transformed), np.float64)
 
 
+def get_accuracy(softmax_vals: list[np.float64], target: list[np.float64]):
+    def accurate(comp_val: int, actual_val: np.float64):
+        if comp_val == actual_val:
+            return 1
+
+        return 0
+
+    val_size = len(target)
+
+    return sum([accurate(np.argmax(sig), act_val) for sig, act_val in zip(softmax_vals, target)]) / val_size
+
+
 def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]:
     # Create a random generator with a given seed.
     generator = np.random.RandomState(args.seed)
@@ -84,7 +96,7 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
-        # TODO: Process the data in the order of `permutation`. For every
+        # Process the data in the order of `permutation`. For every
         # `args.batch_size` of them, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
         #
@@ -100,6 +112,53 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         # - compute the derivative with respect to the hidden layer output,
         # - compute the derivative with respect to the hidden layer input,
         # - compute the derivative with respect to `weights[0]` and `biases[0]`.
+
+        def derive_relu(loss_der_hidden_out, relu_vals):
+            res = []
+            for val, hid_out in zip(relu_vals, loss_der_hidden_out):
+                if val > 0:
+                    res.append(hid_out)
+                else:
+                    res.append(0)
+            return np.fromiter((val for val in res), np.float64)
+
+        train_data_size = train_data.shape[0]
+        batch_start = 0
+        while batch_start < train_data_size:
+            w0_batch_sum = np.zeros(weights[0].shape)
+            b0_batch_sum = np.zeros(biases[0].shape)
+            w1_batch_sum = np.zeros(weights[1].shape)
+            b1_batch_sum = np.zeros(biases[1].shape)
+
+            batch_size = min(args.batch_size, train_data_size - batch_start)
+            for i in range(batch_start, batch_start + batch_size):
+                j = permutation[i]
+                x_data = train_data[j, :]
+                t_data = np.zeros((args.classes, 1))
+                t_data[train_target[j]] = 1
+                hidden, out = forward(x_data)
+                out = out.reshape(-1, 1)
+                loss_der_softmax_inputs = out - t_data
+                loss_der_w1 = hidden.T @ loss_der_softmax_inputs.T
+                loss_der_b1 = loss_der_softmax_inputs
+                loss_der_hidden_output = loss_der_softmax_inputs.T @ weights[1].T
+                less_der_hidden_input = derive_relu(loss_der_hidden_output[0], x_data @ weights[0] + biases[0])
+                loss_der_w0 = x_data.reshape(-1, 1) @ less_der_hidden_input.reshape(-1, 1).T
+                loss_der_b0 = less_der_hidden_input
+
+                w0_batch_sum += loss_der_w0
+                b0_batch_sum += loss_der_b0
+
+                w1_batch_sum += loss_der_w1
+                b1_batch_sum += loss_der_b1[:, 0]
+
+            weights[0] = weights[0] - args.learning_rate * (1 / batch_size) * w0_batch_sum
+            biases[0] = biases[0] - args.learning_rate * (1 / batch_size) * b0_batch_sum
+
+            weights[1] = weights[1] - args.learning_rate * (1 / batch_size) * w1_batch_sum
+            biases[1] = biases[1] - args.learning_rate * (1 / batch_size) * b1_batch_sum
+
+            batch_start += batch_size
 
         # TODO: After the SGD epoch, measure the accuracy for both the
         # train test and the test set.
