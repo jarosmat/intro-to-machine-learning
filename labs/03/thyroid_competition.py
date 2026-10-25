@@ -27,7 +27,7 @@ import sklearn
 from sklearn.metrics import accuracy_score
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import StackingClassifier
-from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
+from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import pandas as pd
 
@@ -172,7 +172,7 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         voting_list = [("log_reg", make_pipeline(
             LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed))),
                        ("sgd_reg",
-                        make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0,
+                        make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, penalty="l2",
                                                     random_state=args.seed)))]
         voting = sklearn.ensemble.VotingClassifier(voting_list, voting="soft")
 
@@ -201,7 +201,7 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         estimators = [("log_reg", make_pipeline(
             LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed))),
                       ("sgd_reg",
-                       make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0,
+                       make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, penalty="l2",
                                                    random_state=args.seed)))]
 
         stacking = StackingClassifier(estimators=estimators,
