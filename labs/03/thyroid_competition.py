@@ -25,6 +25,7 @@ import numpy as np
 import numpy.typing as npt
 import sklearn
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import StackingClassifier
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import pandas as pd
@@ -210,7 +211,50 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
 
     elif args.model_type == "stack-class":
-        pass
+        estimators = [("log_reg", make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION))),
+                      ("ridge_reg", make_pipeline(RidgeClassifier(max_iter=5000, tol=PRECISION))),
+                      ("sgd_reg",
+                       make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0)))]
+
+        stacking = StackingClassifier(estimators=estimators,
+                                      final_estimator=LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION),
+                                      cv=10)
+
+        param_grid = {
+            "estimators__log_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "estimators__log_reg__preprocessor__bin__poly__interaction_only": [True, False],
+            "estimators__log_reg__preprocessor__real__scale__with_mean": [True, False],
+            "estimators__log_reg__preprocessor__real__scale__with_std": [True, False],
+            "estimators__log_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "estimators__log_reg__classifier__C": np.logspace(-4, 3, num=8).tolist(),
+
+            "estimators__ridge_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "estimators__ridge_reg__preprocessor__bin__poly__interaction_only": [True, False],
+            "estimators__ridge_reg__preprocessor__real__scale__with_mean": [True, False],
+            "estimators__ridge_reg__preprocessor__real__scale__with_std": [True, False],
+            "estimators__ridge_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "estimators__ridge_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
+
+            "estimators__sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "estimators__sgd_reg__preprocessor__bin__poly__interaction_only": [True, False],
+            "estimators__sgd_reg__preprocessor__real__scale__with_mean": [True, False],
+            "estimators__sgd_reg__preprocessor__real__scale__with_std": [True, False],
+            "estimators__sgd_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "estimators__sgd_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
+            "estimators__sgd_reg__classifier__learning_rate": ["optimal", "invscaling"],
+
+            "final_estimator__C": np.logspace(-4, 3, num=8).tolist()
+        }
+
+        cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
+        model = do_grid_search(stacking, param_grid, cv, args, X_train, y_train)
+        pred = validate(model, X_val, y_val)
+        log_validation_score(pred, "Stacking model")
+
+        # Serialize the model.
+        pickle_model(model, args)
+
+
     else:
         print(
             "Invalid model type to train, either make the model predict or input valid model type to train, see --help")
