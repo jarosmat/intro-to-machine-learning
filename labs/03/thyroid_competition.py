@@ -24,6 +24,7 @@ import urllib.request
 import numpy as np
 import numpy.typing as npt
 import sklearn
+from sklearn.metrics import accuracy_score
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import StackingClassifier
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
@@ -73,7 +74,7 @@ class Dataset:
 
 def validate(model, x_data, y_data):
     prediction = model.predict(x_data)
-    return sklearn.metrics.accuracy_score(y_data, prediction)
+    return accuracy_score(y_data, prediction)
 
 
 def log_validation_score(score: np.float64 | float | int, model_name):
