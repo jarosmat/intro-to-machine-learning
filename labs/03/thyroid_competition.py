@@ -125,7 +125,8 @@ def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
 
     results = pd.DataFrame(grid_search.cv_results_)
     print(
-        results.head(10)[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values("rank_test_score"))
+        results.head(10)[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values(
+            "rank_test_score"))
 
     return grid_search
 
@@ -169,26 +170,25 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         # Serialize the model.
         pickle_model(model, args)
     elif args.model_type == "vote-class":
-        voting_list = [("log_reg", make_pipeline(
-            LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed))),
+        voting_list = [("log_reg",
+                        LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed)),
                        ("sgd_reg",
-                        make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, penalty="l2",
-                                                    random_state=args.seed)))]
+                        SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, penalty="l2",
+                                      random_state=args.seed))]
         voting = sklearn.ensemble.VotingClassifier(voting_list, voting="soft")
+        pipe = make_pipeline(voting)
 
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
         param_grid = {
-            "log_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "log_reg__preprocessor__real__poly__degree": [x for x in range(1, 4)],
-            "log_reg__classifier__C": np.logspace(-4, 3, num=8).tolist(),
+            "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "classifier__log_reg__C": np.logspace(-4, 3, num=8).tolist(),
 
-            "sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "sgd_reg__preprocessor__real__poly__degree": [x for x in range(1, 4)],
-            "sgd_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
-            "sgd_reg__classifier__learning_rate": ["optimal", "invscaling"],
+            "classifier__sgd_reg__alpha": np.logspace(-4, 3, num=8).tolist(),
+            "classifier__sgd_reg__learning_rate": ["optimal", "invscaling"],
         }
 
-        model = do_grid_search(voting, param_grid, cv, args, X_train, y_train)
+        model = do_grid_search(pipe, param_grid, cv, args, X_train, y_train)
 
         pred = validate(model, X_val, y_val)
         log_validation_score(pred, "Voting model")
@@ -198,31 +198,31 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
 
     elif args.model_type == "stack-class":
-        estimators = [("log_reg", make_pipeline(
-            LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed))),
+        estimators = [("log_reg",
+                       LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed)),
                       ("sgd_reg",
-                       make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, penalty="l2",
-                                                   random_state=args.seed)))]
+                       SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, penalty="l2",
+                                     random_state=args.seed))]
 
         stacking = StackingClassifier(estimators=estimators,
                                       final_estimator=LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION),
                                       cv=10)
 
+        pipe = make_pipeline(stacking)
+
         param_grid = {
-            "estimators__log_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "estimators__log_reg__preprocessor__real__poly__degree": [x for x in range(1, 4)],
-            "estimators__log_reg__classifier__C": np.logspace(-4, 3, num=8).tolist(),
+            "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "classifier__estimators__log_reg__C": np.logspace(-4, 3, num=8).tolist(),
 
-            "estimators__sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "estimators__sgd_reg__preprocessor__real__poly__degree": [x for x in range(1, 4)],
-            "estimators__sgd_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
-            "estimators__sgd_reg__classifier__learning_rate": ["optimal", "invscaling"],
+            "classifier__estimators__sgd_reg__alpha": np.logspace(-4, 3, num=8).tolist(),
+            "classifier__estimators__sgd_reg__learning_rate": ["optimal", "invscaling"],
 
-            "final_estimator__C": np.logspace(-4, 3, num=8).tolist()
+            "classifier__final_estimator__C": np.logspace(-4, 3, num=8).tolist()
         }
 
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
-        model = do_grid_search(stacking, param_grid, cv, args, X_train, y_train)
+        model = do_grid_search(pipe, param_grid, cv, args, X_train, y_train)
         pred = validate(model, X_val, y_val)
         log_validation_score(pred, "Stacking model")
 
