@@ -23,6 +23,11 @@ import urllib.request
 
 import numpy as np
 import numpy.typing as npt
+import sklearn
+from sklearn.compose import ColumnTransformer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
@@ -45,6 +50,7 @@ class Dataset:
     The target variable is binary, with 1 denoting a thyroid disease and
     0 normal function.
     """
+
     def __init__(self,
                  name="thyroid_competition.train.npz",
                  url="https://ufal.mff.cuni.cz/~courses/npfl129/2627/datasets/"):
@@ -79,8 +85,41 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         np.random.seed(args.seed)
         train = Dataset()
 
-        # TODO: Train a model on the given dataset and store it in `model`.
-        model = ...
+        # Train a model on the given dataset and store it in `model`.
+        bin_cols = slice(0, 15)
+        real_cols = slice(15, 21)
+        bin_pipe = sklearn.pipeline.Pipeline([("poly", PolynomialFeatures(interaction_only=True))])
+        real_pipe = sklearn.pipeline.Pipeline([("scale", StandardScaler()),
+                                               ("poly", PolynomialFeatures())])
+
+        transformer_list = [("bin", bin_pipe, bin_cols),
+                            ("real", real_pipe, real_cols)]
+
+        preprocessor = ColumnTransformer(transformer_list)
+
+        pipe_list = [("preprocessor", preprocessor),
+                     ("classifier", LogisticRegression(l1_ratio=0, max_iter=5000))]
+
+        pipe = sklearn.pipeline.Pipeline(pipe_list)
+        cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
+        param_grid = {
+            "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "preprocessor__bin__poly__interaction_only": [True, False],
+            "preprocessor__real__scale__with_mean": [True, False],
+            "preprocessor__real__scale__with_std": [True, False],
+            "preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "classifier__C": np.logspace(-4, 3, num=8).tolist()
+        }
+
+        grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=-1)
+
+        grid_search.fit(train.data, train.target)
+
+        results = pd.DataFrame(grid_search.cv_results_)
+        print(
+            results[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values("rank_test_score"))
+
+        model = grid_search
 
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as model_file:
@@ -93,8 +132,8 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         with lzma.open(args.model_path, "rb") as model_file:
             model = pickle.load(model_file)
 
-        # TODO: Generate `predictions` with the test set predictions.
-        predictions = ...
+        # Generate `predictions` with the test set predictions.
+        predictions = model.predict(test.data)
 
         return predictions
 
