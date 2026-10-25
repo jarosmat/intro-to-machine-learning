@@ -29,7 +29,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import pandas as pd
 
-
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 # These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--predict", default=None, type=str, help="Path to the dataset to predict")
@@ -109,6 +108,23 @@ def make_pipeline(model):
     return sklearn.pipeline.Pipeline(pipe_list)
 
 
+def pickle_model(model, args):
+    with lzma.open(args.model_path, "wb") as model_file:
+        pickle.dump(model, model_file)
+
+
+def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
+    grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=-1)
+
+    grid_search.fit(x_train, y_train)
+
+    results = pd.DataFrame(grid_search.cv_results_)
+    print(
+        results[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values("rank_test_score"))
+
+    return grid_search
+
+
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
     if args.predict is not None:
         # Use the model and return test set predictions, either as a Python list or a NumPy array.
@@ -142,22 +158,14 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
             "preprocessor__real__poly__degree": [x for x in range(1, 6)],
             "classifier__C": np.logspace(-4, 3, num=8).tolist()
         }
-        grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=-1)
 
-        grid_search.fit(X_train, y_train)
-
-        results = pd.DataFrame(grid_search.cv_results_)
-        print(
-            results[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values("rank_test_score"))
-
-        model = grid_search
+        model = do_grid_search(pipe, param_grid, cv, args, X_train, y_train)
 
         pred = validate(model, X_val, y_val)
         log_validation_score(pred, "Logistic regression model")
 
         # Serialize the model.
-        with lzma.open(args.model_path, "wb") as model_file:
-            pickle.dump(model, model_file)
+        pickle_model(model, args)
     elif args.model_type == "vote-class":
         pass
     elif args.model_type == "stack-class":
