@@ -67,9 +67,11 @@ class Dataset:
         for key, value in dataset.items():
             setattr(self, key, value)
 
+
 def validate(model, x_data, y_data):
     prediction = model.predict(x_data)
     return sklearn.metrics.accuracy_score(y_data, prediction)
+
 
 def log_validation_score(score: np.float64 | float | int, model_name):
     print(f'{model_name} has achieved accuracy of {score}')
@@ -87,6 +89,24 @@ class ThermometerBins(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin)
     def transform(self, X):
         X = self.discretizer_.transform(X)
         return np.concatenate([X[:, [i]] >= np.arange(1, n) for i, n in enumerate(self.discretizer_.n_bins_)], axis=1)
+
+
+def make_pipeline(model):
+    bin_cols = slice(0, 15)
+    real_cols = slice(15, 21)
+    bin_pipe = sklearn.pipeline.Pipeline([("poly", PolynomialFeatures(interaction_only=True))])
+    real_pipe = sklearn.pipeline.Pipeline([("scale", StandardScaler()),
+                                           ("poly", PolynomialFeatures())])
+
+    transformer_list = [("bin", bin_pipe, bin_cols),
+                        ("real", real_pipe, real_cols)]
+
+    preprocessor = ColumnTransformer(transformer_list)
+
+    pipe_list = [("preprocessor", preprocessor),
+                 ("classifier", model)]
+
+    return sklearn.pipeline.Pipeline(pipe_list)
 
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
@@ -112,22 +132,7 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
     if args.model_type == "log-reg":
         # We are training a model.
 
-        # Train a model on the given dataset and store it in `model`.
-        bin_cols = slice(0, 15)
-        real_cols = slice(15, 21)
-        bin_pipe = sklearn.pipeline.Pipeline([("poly", PolynomialFeatures(interaction_only=True))])
-        real_pipe = sklearn.pipeline.Pipeline([("scale", StandardScaler()),
-                                               ("poly", PolynomialFeatures())])
-
-        transformer_list = [("bin", bin_pipe, bin_cols),
-                            ("real", real_pipe, real_cols)]
-
-        preprocessor = ColumnTransformer(transformer_list)
-
-        pipe_list = [("preprocessor", preprocessor),
-                     ("classifier", LogisticRegression(l1_ratio=0, max_iter=5000))]
-
-        pipe = sklearn.pipeline.Pipeline(pipe_list)
+        pipe = make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000))
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
         param_grid = {
             "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
@@ -137,7 +142,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
             "preprocessor__real__poly__degree": [x for x in range(1, 6)],
             "classifier__C": np.logspace(-4, 3, num=8).tolist()
         }
-
         grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=-1)
 
         grid_search.fit(X_train, y_train)
@@ -150,7 +154,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
         pred = validate(model, X_val, y_val)
         log_validation_score(pred, "Logistic regression model")
-
 
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as model_file:
