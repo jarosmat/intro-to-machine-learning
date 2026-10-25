@@ -152,7 +152,7 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
     if args.model_type == "log-reg":
         # We are training a model.
 
-        pipe = make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000))
+        pipe = make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, random_state=args.seed))
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
         param_grid = {
             "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
@@ -171,10 +171,10 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         # Serialize the model.
         pickle_model(model, args)
     elif args.model_type == "vote-class":
-        voting_list = [("log_reg", make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION))),
-                       ("ridge_reg", make_pipeline(RidgeClassifier(max_iter=5000, tol=PRECISION))),
+        voting_list = [("log_reg", make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed))),
+                       ("ridge_reg", make_pipeline(RidgeClassifier(max_iter=5000, tol=PRECISION, random_state=args.seed))),
                        ("sgd_reg",
-                        make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0)))]
+                        make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0, random_state=args.seed)))]
         voting = sklearn.ensemble.VotingClassifier(voting_list, voting="soft")
 
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
@@ -212,10 +212,10 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
 
     elif args.model_type == "stack-class":
-        estimators = [("log_reg", make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION))),
-                      ("ridge_reg", make_pipeline(RidgeClassifier(max_iter=5000, tol=PRECISION))),
+        estimators = [("log_reg", make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION, random_state=args.seed))),
+                      ("ridge_reg", make_pipeline(RidgeClassifier(max_iter=5000, tol=PRECISION, random_state=args.seed))),
                       ("sgd_reg",
-                       make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0)))]
+                       make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0, random_state=args.seed)))]
 
         stacking = StackingClassifier(estimators=estimators,
                                       final_estimator=LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION),
