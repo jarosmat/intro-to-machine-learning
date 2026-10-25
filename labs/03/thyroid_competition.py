@@ -213,10 +213,10 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         param_grid = {
             "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
             "preprocessor__real__poly__degree": [x for x in range(1, 4)],
-            "classifier__estimators__log_reg__C": np.logspace(-3, 3, num=7).tolist(),
+            "classifier__log_reg__C": np.logspace(-3, 3, num=7).tolist(),
 
-            "classifier__estimators__sgd_reg__alpha": np.logspace(-3, 3, num=7).tolist(),
-            "classifier__estimators__sgd_reg__learning_rate": ["optimal", "invscaling"],
+            "classifier__sgd_reg__alpha": np.logspace(-3, 3, num=7).tolist(),
+            "classifier__sgd_reg__learning_rate": ["optimal", "invscaling"],
 
             "classifier__final_estimator__C": np.logspace(-3, 3, num=7).tolist()
         }
