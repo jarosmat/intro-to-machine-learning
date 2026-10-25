@@ -186,13 +186,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
             "log_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
             "log_reg__classifier__C": np.logspace(-4, 3, num=8).tolist(),
 
-            "ridge_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "ridge_reg__preprocessor__bin__poly__interaction_only": [True, False],
-            "ridge_reg__preprocessor__real__scale__with_mean": [True, False],
-            "ridge_reg__preprocessor__real__scale__with_std": [True, False],
-            "ridge_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
-            "ridge_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
-
             "sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
             "sgd_reg__preprocessor__real__scale__with_mean": [True, False],
             "sgd_reg__preprocessor__real__scale__with_std": [True, False],
@@ -227,13 +220,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
             "estimators__log_reg__preprocessor__real__scale__with_std": [True, False],
             "estimators__log_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
             "estimators__log_reg__classifier__C": np.logspace(-4, 3, num=8).tolist(),
-
-            "estimators__ridge_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "estimators__ridge_reg__preprocessor__bin__poly__interaction_only": [True, False],
-            "estimators__ridge_reg__preprocessor__real__scale__with_mean": [True, False],
-            "estimators__ridge_reg__preprocessor__real__scale__with_std": [True, False],
-            "estimators__ridge_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
-            "estimators__ridge_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
 
             "estimators__sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
             "estimators__sgd_reg__preprocessor__real__scale__with_mean": [True, False],
