@@ -25,7 +25,7 @@ import numpy as np
 import numpy.typing as npt
 import sklearn
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, SGDClassifier
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import pandas as pd
 
@@ -38,6 +38,8 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--model_path", default="thyroid_competition.model", type=str, help="Model path")
 parser.add_argument("--model_type", default="log-reg", type=str,
                     help="Type of classifier to train, available values:\n\t- log-reg - simple logistic regression, default\n\t- vote-class - trains three models separately and does soft voting\n\t- stack-class - uses stacking classifier, where 3 models are trained on the actual data and resulting classifier is trained on the output of these models")
+
+PRECISION = 1e-10
 
 
 class Dataset:
@@ -167,7 +169,46 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         # Serialize the model.
         pickle_model(model, args)
     elif args.model_type == "vote-class":
-        pass
+        voting_list = [("log_reg", make_pipeline(LogisticRegression(l1_ratio=0, max_iter=5000, tol=PRECISION))),
+                       ("ridge_reg", make_pipeline(RidgeClassifier(max_iter=5000, tol=PRECISION))),
+                       ("sgd_reg",
+                        make_pipeline(SGDClassifier(loss="modified_huber", max_iter=5000, tol=PRECISION, l1_ratio=0)))]
+        voting = sklearn.ensemble.VotingClassifier(voting_list, voting="soft")
+
+        cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
+        param_grid = {
+            "log_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "log_reg__preprocessor__bin__poly__interaction_only": [True, False],
+            "log_reg__preprocessor__real__scale__with_mean": [True, False],
+            "log_reg__preprocessor__real__scale__with_std": [True, False],
+            "log_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "log_reg__classifier__C": np.logspace(-4, 3, num=8).tolist(),
+
+            "ridge_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "ridge_reg__preprocessor__bin__poly__interaction_only": [True, False],
+            "ridge_reg__preprocessor__real__scale__with_mean": [True, False],
+            "ridge_reg__preprocessor__real__scale__with_std": [True, False],
+            "ridge_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "ridge_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
+
+            "sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
+            "sgd_reg__preprocessor__bin__poly__interaction_only": [True, False],
+            "sgd_reg__preprocessor__real__scale__with_mean": [True, False],
+            "sgd_reg__preprocessor__real__scale__with_std": [True, False],
+            "sgd_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
+            "sgd_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
+            "sgd_reg__classifier__learning_rate": ["optimal", "invscaling"],
+        }
+
+        model = do_grid_search(voting, param_grid, cv, args, X_train, y_train)
+
+        pred = validate(model, X_val, y_val)
+        log_validation_score(pred, "Voting model")
+
+        # Serialize the model.
+        pickle_model(model, args)
+
+
     elif args.model_type == "stack-class":
         pass
     else:
