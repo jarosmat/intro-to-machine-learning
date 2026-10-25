@@ -157,7 +157,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
         param_grid = {
             "preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "preprocessor__bin__poly__interaction_only": [True, False],
             "preprocessor__real__scale__with_mean": [True, False],
             "preprocessor__real__scale__with_std": [True, False],
             "preprocessor__real__poly__degree": [x for x in range(1, 6)],
@@ -182,7 +181,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         cv = sklearn.model_selection.StratifiedKFold(n_splits=10, shuffle=True, random_state=args.seed)
         param_grid = {
             "log_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "log_reg__preprocessor__bin__poly__interaction_only": [True, False],
             "log_reg__preprocessor__real__scale__with_mean": [True, False],
             "log_reg__preprocessor__real__scale__with_std": [True, False],
             "log_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
@@ -196,7 +194,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
             "ridge_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
 
             "sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "sgd_reg__preprocessor__bin__poly__interaction_only": [True, False],
             "sgd_reg__preprocessor__real__scale__with_mean": [True, False],
             "sgd_reg__preprocessor__real__scale__with_std": [True, False],
             "sgd_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
@@ -226,7 +223,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
         param_grid = {
             "estimators__log_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "estimators__log_reg__preprocessor__bin__poly__interaction_only": [True, False],
             "estimators__log_reg__preprocessor__real__scale__with_mean": [True, False],
             "estimators__log_reg__preprocessor__real__scale__with_std": [True, False],
             "estimators__log_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
@@ -240,7 +236,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
             "estimators__ridge_reg__classifier__alpha": np.logspace(-4, 3, num=8).tolist(),
 
             "estimators__sgd_reg__preprocessor__bin__poly__degree": [x for x in range(1, 4)],
-            "estimators__sgd_reg__preprocessor__bin__poly__interaction_only": [True, False],
             "estimators__sgd_reg__preprocessor__real__scale__with_mean": [True, False],
             "estimators__sgd_reg__preprocessor__real__scale__with_std": [True, False],
             "estimators__sgd_reg__preprocessor__real__poly__degree": [x for x in range(1, 6)],
