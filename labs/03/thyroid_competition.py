@@ -29,13 +29,16 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 import pandas as pd
 
-parser = argparse.ArgumentParser()
+
+parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 # These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--predict", default=None, type=str, help="Path to the dataset to predict")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 # For these and any other arguments you add, ReCodEx will keep your default value.
 parser.add_argument("--model_path", default="thyroid_competition.model", type=str, help="Model path")
+parser.add_argument("--model_type", default="log-reg", type=str,
+                    help="Type of classifier to train, available values:\n\t- log-reg - simple logistic regression, default\n\t- vote-class - trains three models separately and does soft voting\n\t- stack-class - uses stacking classifier, where 3 models are trained on the actual data and resulting classifier is trained on the output of these models")
 
 
 class Dataset:
@@ -64,6 +67,13 @@ class Dataset:
         for key, value in dataset.items():
             setattr(self, key, value)
 
+def validate(model, x_data, y_data):
+    prediction = model.predict(x_data)
+    return sklearn.metrics.accuracy_score(y_data, prediction)
+
+def log_validation_score(score: np.float64 | float | int, model_name):
+    print(f'{model_name} has achieved accuracy of {score}')
+
 
 class ThermometerBins(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin):
     def __init__(self, n_bins=5, strategy="quantile"):
@@ -80,10 +90,27 @@ class ThermometerBins(sklearn.base.BaseEstimator, sklearn.base.TransformerMixin)
 
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
-    if args.predict is None:
+    if args.predict is not None:
+        # Use the model and return test set predictions, either as a Python list or a NumPy array.
+        test = Dataset(args.predict)
+
+        with lzma.open(args.model_path, "rb") as model_file:
+            model = pickle.load(model_file)
+
+        # Generate `predictions` with the test set predictions.
+        predictions = model.predict(test.data)
+
+        return predictions
+
+    np.random.seed(args.seed)
+    train = Dataset()
+
+    X_train, X_val, y_train, y_val = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.2,
+                                                                              random_state=args.seed,
+                                                                              stratify=train.target)
+
+    if args.model_type == "log-reg":
         # We are training a model.
-        np.random.seed(args.seed)
-        train = Dataset()
 
         # Train a model on the given dataset and store it in `model`.
         bin_cols = slice(0, 15)
@@ -113,7 +140,7 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
         grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=-1)
 
-        grid_search.fit(train.data, train.target)
+        grid_search.fit(X_train, y_train)
 
         results = pd.DataFrame(grid_search.cv_results_)
         print(
@@ -121,21 +148,21 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
 
         model = grid_search
 
+        pred = validate(model, X_val, y_val)
+        log_validation_score(pred, "Logistic regression model")
+
+
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as model_file:
             pickle.dump(model, model_file)
-
+    elif args.model_type == "vote-class":
+        pass
+    elif args.model_type == "stack-class":
+        pass
     else:
-        # Use the model and return test set predictions, either as a Python list or a NumPy array.
-        test = Dataset(args.predict)
-
-        with lzma.open(args.model_path, "rb") as model_file:
-            model = pickle.load(model_file)
-
-        # Generate `predictions` with the test set predictions.
-        predictions = model.predict(test.data)
-
-        return predictions
+        print(
+            "Invalid model type to train, either make the model predict or input valid model type to train, see --help")
+        sys.exit(-1)
 
 
 if __name__ == "__main__":
