@@ -125,7 +125,7 @@ def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
 
     results = pd.DataFrame(grid_search.cv_results_)
     print(
-        results[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values("rank_test_score"))
+        results.head(10)[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values("rank_test_score"))
 
     return grid_search
 
