@@ -42,7 +42,7 @@ parser.add_argument("--model_type", default="log-reg", type=str,
                     help="Type of classifier to train, available values:\n\t- log-reg - simple logistic regression, default\n\t- vote-class - trains three models separately and does soft voting\n\t- stack-class - uses stacking classifier, where 3 models are trained on the actual data and resulting classifier is trained on the output of these models")
 parser.add_argument("--verbose", default=2, type=int, help="Level of verbosity of grid search")
 parser.add_argument("--jobs", default=-1, type=int, help="How many jobs for the grid search to use")
-PRECISION = 1e-10
+PRECISION = 1e-4
 
 
 class Dataset:
