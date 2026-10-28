@@ -30,8 +30,25 @@ parser.add_argument("--learning_rate", default=0.01, type=float, help="Learning 
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x: int(x) if x.isdigit() else float(x), help="Test size")
+
+
 # If you add more arguments, ReCodEx will keep them with your default values.
 
+
+def sigmoid(val: np.float64):
+    return 1 / (1 + np.exp(-val))
+
+
+def get_sigmoid_vals(data: list[np.float64], weights_c: list[np.float64]):
+    return [sigmoid(x @ weights_c) for x in data]
+
+
+def set_ones(shape, class_list):
+    res = np.zeros(shape)
+    for cls in class_list:
+        res[cls] = 1
+
+    return res
 
 def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]]]:
     # Create a random generator with a given seed.
@@ -64,10 +81,26 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
-        # TODO: Process the data in the order of `permutation`. For every
+        # Process the data in the order of `permutation`. For every
         # `args.batch_size` of them, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
-        ...
+        batch_start = 0
+        while batch_start < permutation.size:
+            batch_size = min(args.batch_size, permutation.size - batch_start)
+            batch_sum = np.zeros(weights.shape)
+
+            for k in range(batch_start, batch_start + batch_size):
+                i = permutation[k]
+                x = train_data[i]
+                t = train_target[i]
+                x = x.reshape(1, -1)
+                sig_scalar = get_sigmoid_vals(x, weights)
+
+                batch_sum += x.T @ (-t + t * sig_scalar + sig_scalar - t * sig_scalar)
+
+            weights = weights - args.learning_rate * (1 / batch_size) * batch_sum
+
+            batch_start += args.batch_size
 
         # TODO: After the SGD epoch, compute the micro-averaged and the
         # macro-averaged F1-score for both the train test and the test set.
