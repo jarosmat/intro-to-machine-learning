@@ -50,6 +50,56 @@ def set_ones(shape, class_list):
 
     return res
 
+
+def get_class(pred, act):
+    if pred >= 0.5 and act == 1:
+        return "TP"
+    if pred < 0.5 and act == 1:
+        return "FN"
+    if pred < 0.5 and act == 0:
+        return "TN"
+    return "FP"
+
+
+def get_class_count_per_classification(pred, actual, classifications):
+    res_FN = [0 for _ in range(classifications)]
+    res_TP = [0 for _ in range(classifications)]
+    res_TN = [0 for _ in range(classifications)]
+    res_FP = [0 for _ in range(classifications)]
+    for c_pred, c_act in zip(pred, actual):
+        for c in range(classifications):
+            cls = get_class(c_pred[c], c_act[c])
+            if cls == "TP":
+                res_TP[c] += 1
+            elif cls == "FN":
+                res_FN[c] += 1
+            elif cls == "TN":
+                res_TN[c] += 1
+            else:
+                res_FP[c] += 1
+
+    return res_FP, res_TN, res_FN, res_TP
+
+
+def f1_micro(pred, actual, classifications):
+    FP, TN, FN, TP = get_class_count_per_classification(pred, actual, classifications)
+    TP_S = sum(TP)
+    FP_S = sum(FP)
+    FN_S = sum(FN)
+
+    precision = TP_S / (TP_S + FP_S)
+    recall = TP_S / (TP_S + FN_S)
+
+    return (2 * precision * recall) / (precision + recall)
+
+
+def f1_macro(pred, actual, classifications):
+    FP, TN, FN, TP = get_class_count_per_classification(pred, actual, classifications)
+    F1_C = [(TP[i] + TP[i]) / (TP[i] + FP[i] + TP[i] + FN[i]) for i in range(classifications)]
+
+    return sum(F1_C) / classifications
+
+
 def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]]]:
     # Create a random generator with a given seed.
     generator = np.random.RandomState(args.seed)
@@ -102,10 +152,16 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
 
             batch_start += args.batch_size
 
-        # TODO: After the SGD epoch, compute the micro-averaged and the
+        # After the SGD epoch, compute the micro-averaged and the
         # macro-averaged F1-score for both the train test and the test set.
         # Compute these scores manually, without using `sklearn.metrics`.
-        train_f1_micro, train_f1_macro, test_f1_micro, test_f1_macro = ...
+        train_sigmoid_vals = get_sigmoid_vals(train_data, weights)
+        test_sigmoid_vals = get_sigmoid_vals(test_data, weights)
+        train_f1_micro, train_f1_macro, test_f1_micro, test_f1_macro = (
+            f1_micro(train_sigmoid_vals, train_target, args.classes),
+            f1_macro(train_sigmoid_vals, train_target, args.classes),
+            f1_micro(test_sigmoid_vals, test_target, args.classes),
+            f1_macro(test_sigmoid_vals, test_target, args.classes))
 
         print("After epoch {}: train F1 micro {:.2f}% macro {:.2f}%, test F1 micro {:.2f}% macro {:.1f}%".format(
             epoch + 1, 100 * train_f1_micro, 100 * train_f1_macro, 100 * test_f1_micro, 100 * test_f1_macro))
