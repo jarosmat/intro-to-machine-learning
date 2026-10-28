@@ -42,10 +42,11 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         n_samples=args.data_size, n_classes=args.classes, allow_unlabeled=False,
         return_indicator=False, random_state=args.seed)
 
-    # TODO: The `target` is a list of classes for every input example. Convert
+    # The `target` is a list of classes for every input example. Convert
     # it to a dense representation (n-hot encoding) -- for each input example,
     # the target should be vector of `args.classes` binary indicators.
-    target = ...
+    shape = (args.classes,)
+    target = np.fromiter((set_ones(shape, class_list) for class_list in target_list), np.ndarray)
 
     # Append a constant feature with value 1 to the end of all input data.
     # Then we do not need to explicitly represent bias - it becomes the last weight.
