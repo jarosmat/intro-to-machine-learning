@@ -20,6 +20,8 @@ import pickle
 import sys
 from typing import Optional
 import urllib.request
+import sklearn
+import pandas as pd
 
 import numpy as np
 import numpy.typing as npt
@@ -54,6 +56,41 @@ class Dataset:
             setattr(self, key, value[:data_size])
         self.data = self.data.reshape([-1, 28*28]).astype(float)
 
+def make_pipeline(model):
+    real_cols = slice(0, 784)
+    real_pipe = sklearn.pipeline.Pipeline([("MinMax", sklearn.preprocessing.MinMaxScaler())])
+
+    transformer_list = [("all_vals", real_pipe, real_cols)]
+
+    preprocessor = sklearn.compose.ColumnTransformer(transformer_list)
+
+    pipe_list = [("preprocessor", preprocessor),
+                 ("classifier", model)]
+
+    return sklearn.pipeline.Pipeline(pipe_list)
+
+def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
+    grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=1)
+
+    grid_search.fit(x_train, y_train)
+
+    results = pd.DataFrame(grid_search.cv_results_)
+    results.to_csv("grid_res.csv")
+    pd.set_option("display.max_colwidth", None)
+    print(
+        results.head(10)[["params", "mean_test_score", "std_test_score", "rank_test_score"]].sort_values(
+            "rank_test_score"))
+
+    return grid_search
+
+def validate(model, x_data, y_data):
+    prediction = model.predict(x_data)
+    return sklearn.metrics.accuracy_score(y_data, prediction)
+
+def log_validation_score(score: np.float64 | float | int, model_name):
+    print(f'{model_name} has achieved accuracy of {score}')
+
+
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
     if args.predict is None:
@@ -61,8 +98,29 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         np.random.seed(args.seed)
         train = Dataset()
 
-        # TODO: Train a model on the given dataset and store it in `model`.
-        model = ...
+        # Train a model on the given dataset and store it in `model`.
+        print(train.data.shape)
+
+        X_train, X_val, y_train, y_val = sklearn.model_selection.train_test_split(train.data, train.target,
+                                                                                  test_size=0.2,
+                                                                                  random_state=args.seed,
+                                                                                  stratify=train.target)
+
+        pipe = make_pipeline(sklearn.neural_network.MLPClassifier(learning_rate='invscaling', max_iter=2000 ,random_state=args.seed))
+        cv = sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=args.seed)
+
+        param_grid = {
+            "classifier__alpha": np.logspace(-5,5,11).tolist()
+        }
+
+
+
+        model = do_grid_search(pipe, param_grid, cv, args, X_train, y_train)
+
+        pred = validate(model, X_val, y_val)
+        log_validation_score(pred, "model validation")
+        pred_train = validate(model, X_train, y_train)
+        log_validation_score(pred_train, "model train")
 
         # If you trained one or more MLPs, you can use the following code
         # to compress it significantly (approximately 12 times). The snippet
