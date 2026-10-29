@@ -82,12 +82,18 @@ def local_average(x_arr, image_shape=(28, 28), radius=1):
 
 
 def make_pipeline(model):
-    real_cols = slice(0, 784)
-    real_pipe = sklearn.pipeline.Pipeline([("MinMax", sklearn.preprocessing.MinMaxScaler())])
+    local_average_transformer = sklearn.preprocessing.FunctionTransformer(local_average,kw_args={'image_shape': (28, 28), 'radius': 1},)
+    local_average_pipe = sklearn.pipeline.Pipeline([
+        ("Neighbours", local_average_transformer),
+        ("MinMax", sklearn.preprocessing.MinMaxScaler())])
 
-    transformer_list = [("all_vals", real_pipe, real_cols)]
+    min_max_pipe = sklearn.pipeline.Pipeline([
+        ("MinMax", sklearn.preprocessing.MinMaxScaler())])
 
-    preprocessor = sklearn.compose.ColumnTransformer(transformer_list)
+    preprocessor = sklearn.pipeline.FeatureUnion([
+        ("local_average", local_average_pipe),
+        ("min_max_pipe", min_max_pipe)
+    ])
 
     pipe_list = [("preprocessor", preprocessor),
                  ("classifier", model)]
