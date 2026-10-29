@@ -130,7 +130,6 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         train = Dataset()
 
         # Train a model on the given dataset and store it in `model`.
-        print(train.data.shape)
 
         X_train, X_val, y_train, y_val = sklearn.model_selection.train_test_split(train.data, train.target,
                                                                                   test_size=0.2,
