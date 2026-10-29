@@ -82,8 +82,8 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         with lzma.open(args.model_path, "rb") as model_file:
             model = pickle.load(model_file)
 
-        # TODO: Generate `predictions` with the test set predictions.
-        predictions = ...
+        # Generate `predictions` with the test set predictions.
+        predictions = model.predict(test.data)
 
         return predictions
 
