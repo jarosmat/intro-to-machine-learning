@@ -142,7 +142,13 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
         cv = sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=args.seed)
 
         param_grid = {
-            "classifier__alpha": np.logspace(-5,5,11).tolist()
+            "classifier__alpha": np.logspace(-2,4,7).tolist(),
+            "classifier__hidden_layer_sizes": [(100,), (200,) ],
+            "preprocessor__local_average__Neighbours__kw_args": [
+                {'image_shape': (28, 28), 'radius': 0},
+                {'image_shape': (28, 28), 'radius': 1},
+                {'image_shape': (28, 28), 'radius': 2}
+            ]
         }
 
 
