@@ -41,6 +41,7 @@ class Dataset:
     The train set contains 60000 images of handwritten digits. The data
     contain 28*28=784 values in the range 0-255, the targets are numbers 0-9.
     """
+
     def __init__(self,
                  name="mnist.train.npz",
                  data_size=None,
@@ -54,7 +55,7 @@ class Dataset:
         dataset = np.load(name)
         for key, value in dataset.items():
             setattr(self, key, value[:data_size])
-        self.data = self.data.reshape([-1, 28*28]).astype(float)
+        self.data = self.data.reshape([-1, 28 * 28]).astype(float)
 
 
 def local_average(x_arr, image_shape=(28, 28), radius=1):
@@ -82,7 +83,9 @@ def local_average(x_arr, image_shape=(28, 28), radius=1):
 
 
 def make_pipeline(model):
-    local_average_transformer = sklearn.preprocessing.FunctionTransformer(local_average,kw_args={'image_shape': (28, 28), 'radius': 1},)
+    local_average_transformer = sklearn.preprocessing.FunctionTransformer(local_average,
+                                                                          kw_args={'image_shape': (28, 28),
+                                                                                   'radius': 1}, )
     local_average_pipe = sklearn.pipeline.Pipeline([
         ("Neighbours", local_average_transformer),
         ("MinMax", sklearn.preprocessing.MinMaxScaler())])
@@ -100,6 +103,7 @@ def make_pipeline(model):
 
     return sklearn.pipeline.Pipeline(pipe_list)
 
+
 def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
     grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=10)
 
@@ -114,13 +118,14 @@ def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
 
     return grid_search
 
+
 def validate(model, x_data, y_data):
     prediction = model.predict(x_data)
     return sklearn.metrics.accuracy_score(y_data, prediction)
 
+
 def log_validation_score(score: np.float64 | float | int, model_name):
     print(f'{model_name} has achieved accuracy of {score}')
-
 
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
@@ -136,22 +141,20 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
                                                                                   random_state=args.seed,
                                                                                   stratify=train.target)
 
-        pipe = make_pipeline(sklearn.neural_network.MLPClassifier(max_iter=2000 ,random_state=args.seed))
-        val_x = pipe[:-1] .fit_transform(X_train[:8])
-        assert val_x.shape == (8,1568), val_x.shape
+        pipe = make_pipeline(sklearn.neural_network.MLPClassifier(max_iter=2000, random_state=args.seed))
+        val_x = pipe[:-1].fit_transform(X_train[:8])
+        assert val_x.shape == (8, 1568), val_x.shape
         cv = sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=args.seed)
 
         param_grid = {
-            "classifier__alpha": np.logspace(-2,4,7).tolist(),
-            "classifier__hidden_layer_sizes": [(100,), (200,) ],
+            "classifier__alpha": np.logspace(-2, 4, 7).tolist(),
+            "classifier__hidden_layer_sizes": [(100,), (200,)],
             "preprocessor__local_average__Neighbours__kw_args": [
                 {'image_shape': (28, 28), 'radius': 0},
                 {'image_shape': (28, 28), 'radius': 1},
                 {'image_shape': (28, 28), 'radius': 2}
             ]
         }
-
-
 
         model = do_grid_search(pipe, param_grid, cv, args, X_train, y_train)
 
