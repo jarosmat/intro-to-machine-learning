@@ -136,7 +136,9 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
                                                                                   random_state=args.seed,
                                                                                   stratify=train.target)
 
-        pipe = make_pipeline(sklearn.neural_network.MLPClassifier(learning_rate='invscaling', max_iter=2000 ,random_state=args.seed))
+        pipe = make_pipeline(sklearn.neural_network.MLPClassifier(max_iter=2000 ,random_state=args.seed))
+        val_x = pipe[:-1] .fit_transform(X_train[:8])
+        assert val_x.shape == (8,1568), val_x.shape
         cv = sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=args.seed)
 
         param_grid = {
