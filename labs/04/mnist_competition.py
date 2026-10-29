@@ -101,7 +101,7 @@ def make_pipeline(model):
     return sklearn.pipeline.Pipeline(pipe_list)
 
 def do_grid_search(pipe, param_grid, cv, args, x_train, y_train):
-    grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=1)
+    grid_search = sklearn.model_selection.GridSearchCV(pipe, param_grid, cv=cv, verbose=2, n_jobs=10)
 
     grid_search.fit(x_train, y_train)
 
