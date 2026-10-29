@@ -56,6 +56,31 @@ class Dataset:
             setattr(self, key, value[:data_size])
         self.data = self.data.reshape([-1, 28*28]).astype(float)
 
+
+def local_average(x_arr, image_shape=(28, 28), radius=1):
+    n_samples = x_arr.shape[0]
+    height, width = image_shape
+
+    x_reshaped = x_arr.reshape(n_samples, height, width)
+    x_padded = np.pad(
+        x_reshaped,
+        ((0, 0), (radius, radius), (radius, radius)),
+        mode='constant',
+        constant_values=0.0
+    )
+
+    total = np.zeros_like(x_reshaped, dtype=np.float64)
+
+    for dr in range(2 * radius + 1):
+        for dc in range(2 * radius + 1):
+            total += x_padded[:, dr:dr + height, dc:dc + width]
+
+    window_size = (2 * radius + 1) ** 2
+    x_averaged = total / window_size
+
+    return x_averaged.reshape(n_samples, -1)
+
+
 def make_pipeline(model):
     real_cols = slice(0, 784)
     real_pipe = sklearn.pipeline.Pipeline([("MinMax", sklearn.preprocessing.MinMaxScaler())])
