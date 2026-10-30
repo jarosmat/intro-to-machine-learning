@@ -59,7 +59,7 @@ class Dataset:
         self.data = self.data.reshape([-1, 28 * 28]).astype(float)
 
 
-def shift_image(image,image_shape=(28, 28)):
+def shift_image(image,rng,image_shape=(28, 28)):
     height, width = image_shape
 
     image_reshaped = image.reshape(height, width)
@@ -92,19 +92,22 @@ def shift_image(image,image_shape=(28, 28)):
         else:
             break
     res = []
-    for vert_s in range(-top_rows_zero, bot_rows_zero + 1):
-        for hor_s in range(-left_cols_zero, right_cols_zero + 1):
-            if vert_s == 0 and hor_s == 0:
-                continue
-            res.append(scipy.ndimage.shift(image_reshaped, (vert_s, hor_s), mode='constant', cval=0, order=0))
+
+    for i in range(min(5, max(top_rows_zero + bot_rows_zero, 1) * max(top_rows_zero + bot_rows_zero, 1))):
+        vert_s = rng.integers(-top_rows_zero, bot_rows_zero + 1)
+        hor_s = rng.integers(-left_cols_zero, right_cols_zero + 1)
+        if vert_s == 0 and hor_s == 0:
+            continue
+        res.append(scipy.ndimage.shift(image_reshaped, (vert_s, hor_s), mode='constant', cval=0, order=0).astype(np.uint8))
+
     return [sh.reshape(-1) for sh in res]
 
 def rotate_image(image, image_shape=(28,28)):
     height, width = image_shape
 
     image_reshaped = image.reshape(height, width)
-    deg_min_10 = scipy.ndimage.rotate(image_reshaped, -10, reshape=False, order=0)
-    deg_10 = scipy.ndimage.rotate(image_reshaped, 10, reshape=False, order=0)
+    deg_min_10 = scipy.ndimage.rotate(image_reshaped, -10, reshape=False, order=0).astype(np.uint8)
+    deg_10 = scipy.ndimage.rotate(image_reshaped, 10, reshape=False, order=0).astype(np.uint8)
     return [deg_10.reshape(-1), deg_min_10.reshape(-1) ]
 
 
@@ -179,6 +182,7 @@ def log_validation_score(score: np.float64 | float | int, model_name):
 
 
 def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
+    rng = np.random.default_rng(args.seed)
     if args.predict is None:
         # We are training a model.
         np.random.seed(args.seed)
@@ -190,6 +194,24 @@ def main(args: argparse.Namespace) -> Optional[npt.ArrayLike]:
                                                                                   test_size=0.2,
                                                                                   random_state=args.seed,
                                                                                   stratify=train.target)
+
+        new_X_train = []
+        new_y_train = []
+        for i in range(len(X_train)):
+            new_X_train.append(X_train[i].astype(np.uint8))
+            new_y_train.append(y_train[i].astype(np.uint8))
+            shft = shift_image(X_train[i], rng)
+            for s in shft:
+                new_X_train.append(s)
+                new_y_train.append(y_train[i])
+
+            rot = rotate_image(X_train[i])
+            for r in rot:
+                new_X_train.append(r)
+                new_y_train.append(y_train[i])
+
+        X_train = np.stack(new_X_train)
+        y_train = np.asarray(new_y_train)
 
         pipe = make_pipeline(sklearn.neural_network.MLPClassifier(max_iter=2000, random_state=args.seed))
         val_x = pipe[:-1].fit_transform(X_train[:8])
