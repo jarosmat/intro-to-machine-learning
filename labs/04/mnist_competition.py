@@ -99,6 +99,14 @@ def shift_image(image,image_shape=(28, 28)):
             res.append(scipy.ndimage.shift(image_reshaped, (vert_s, hor_s), mode='constant', cval=0, order=0))
     return [sh.reshape(-1) for sh in res]
 
+def rotate_image(image, image_shape=(28,28)):
+    height, width = image_shape
+
+    image_reshaped = image.reshape(height, width)
+    deg_min_10 = scipy.ndimage.rotate(image_reshaped, -10, reshape=False, order=0)
+    deg_10 = scipy.ndimage.rotate(image_reshaped, 10, reshape=False, order=0)
+    return [deg_10.reshape(-1), deg_min_10.reshape(-1) ]
+
 
 def local_average(x_arr, image_shape=(28, 28), radius=1):
     n_samples = x_arr.shape[0]
