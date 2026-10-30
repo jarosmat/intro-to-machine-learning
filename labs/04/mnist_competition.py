@@ -25,6 +25,7 @@ import pandas as pd
 
 import numpy as np
 import numpy.typing as npt
+import scipy
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
@@ -56,6 +57,47 @@ class Dataset:
         for key, value in dataset.items():
             setattr(self, key, value[:data_size])
         self.data = self.data.reshape([-1, 28 * 28]).astype(float)
+
+
+def shift_image(image,image_shape=(28, 28)):
+    height, width = image_shape
+
+    image_reshaped = image.reshape(height, width)
+
+    cols_zero = np.any(image_reshaped, axis=0)
+    rows_zero = np.any(image_reshaped, axis=1)
+
+    left_cols_zero = 0
+    for c in cols_zero:
+        if not c:
+            left_cols_zero += 1
+        else:
+            break
+    right_cols_zero = 0
+    for i in range(len(cols_zero), 0, -1):
+        if not cols_zero[i -1]:
+            right_cols_zero += 1
+        else:
+            break
+    top_rows_zero = 0
+    for c in rows_zero:
+        if not c:
+            top_rows_zero += 1
+        else:
+            break
+    bot_rows_zero = 0
+    for i in range(len(rows_zero), 0, -1):
+        if not rows_zero[i - 1]:
+            bot_rows_zero += 1
+        else:
+            break
+    res = []
+    for vert_s in range(-top_rows_zero, bot_rows_zero + 1):
+        for hor_s in range(-left_cols_zero, right_cols_zero + 1):
+            if vert_s == 0 and hor_s == 0:
+                continue
+            res.append(scipy.ndimage.shift(image_reshaped, (vert_s, hor_s), mode='constant', cval=0, order=0))
+    return [sh.reshape(-1) for sh in res]
 
 
 def local_average(x_arr, image_shape=(28, 28), radius=1):
