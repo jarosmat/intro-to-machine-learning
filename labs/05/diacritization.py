@@ -165,6 +165,12 @@ def main(args: argparse.Namespace) -> Optional[str]:
         np.random.seed(args.seed)
         train = Dataset()
 
+        with open("res.txt", "w") as f:
+            f.write(train.data)
+
+        X_train = train.data.split("\n")
+        y_train = train.target.split("\n")
+
         # TODO: Train a model on the given dataset and store it in `model`.
         model = ...
 
