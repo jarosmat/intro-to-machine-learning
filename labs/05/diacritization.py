@@ -186,11 +186,17 @@ def main(args: argparse.Namespace) -> Optional[str]:
         with lzma.open(args.model_path, "rb") as model_file:
             model = pickle.load(model_file)
 
-        # TODO: Generate `predictions` with the test set predictions. Specifically,
+        # Generate `predictions` with the test set predictions. Specifically,
         # produce a diacritized `str` with exactly the same number of words as `test.data`.
-        predictions = ...
+        predictions = []
+        split_data = test.data.split('\n')
+        for sentence in split_data:
+            predictions.append(model.predict(sentence))
 
-        return predictions
+        # with open("predict-dev.txt","w") as f:
+        #     f.write('\n'.join(predictions))
+
+        return '\n'.join(predictions)
 
 
 if __name__ == "__main__":
