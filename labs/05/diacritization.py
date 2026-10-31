@@ -20,6 +20,7 @@ import pickle
 import sys
 from typing import Optional
 import urllib.request
+import sklearn
 
 import numpy as np
 
@@ -54,6 +55,109 @@ class Dataset:
             self.target = dataset_file.read()
         self.data = self.target.translate(self.DIA_TO_NODIA)
 
+
+class Model:
+    LETTERS_NODIA = "acdeinorstuyz"
+    LETTERS_DIA = "áčďéěíňóřšťúůýž"
+
+    def __init__(self, args):
+        self.best_window_size = None
+        self.classifiers = {}
+        self.vocab = []
+        self.char_to_idx = {}
+        self.args = args
+
+    def _build_vocab(self, texts):
+        chars = set()
+        for text in texts:
+            chars.update(text)
+        self.vocab = sorted(list(chars))
+        self.char_to_idx = {char: i for i, char in enumerate(self.vocab)}
+
+    def _get_window_features(self, text, idx, window_size):
+        vocab_size = len(self.vocab)
+        feature_vector = np.zeros((2*window_size + 1) * vocab_size)
+
+        for i, w_pos in enumerate(range(idx - window_size, idx + window_size + 1)):
+            if 0 <= w_pos < len(text):
+                char = text[w_pos]
+                if char in self.char_to_idx:
+                    feature_vector[i * vocab_size + self.char_to_idx[char]] = 1.0
+
+        return feature_vector
+
+    def fit_with_grid_search(self, stripped_texts, target_texts, window_sizes=[1, 2, 3, 4]):
+        self._build_vocab(stripped_texts)
+
+        param_grid = {
+            'hidden_layer_sizes': [(50,), (100,), (50, 25)],
+            'alpha': np.logspace(-4, 4, 9).tolist()
+        }
+
+        best_overall_score = -1
+        best_ws = window_sizes[0]
+        best_fitted_classifiers = {}
+
+        for ws in window_sizes:
+
+            stripped_c = 0
+            X_data = {char: [] for char in Model.LETTERS_NODIA}
+            y_data = {char: [] for char in Model.LETTERS_NODIA}
+
+            for stripped, target in zip(stripped_texts, target_texts):
+                if stripped_c < 3:
+                    print(len(stripped))
+                    stripped_c += 1
+                for i, char in enumerate(stripped):
+                    if char in Model.LETTERS_NODIA:
+                        features = self._get_window_features(stripped, i, window_size=ws)
+                        X_data[char].append(features)
+                        y_data[char].append(target[i])
+
+            ws_classifiers = {}
+            ws_scores = []
+
+            for char in Model.LETTERS_NODIA:
+                if len(X_data[char]) < 5:
+                    continue
+
+                X = np.array(X_data[char])
+                y = np.array(y_data[char])
+
+                mlp = sklearn.neural_network.MLPClassifier(max_iter=200, random_state=self.args.seed)
+                cv = sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=self.args.seed)
+                grid_search = sklearn.model_selection.GridSearchCV(estimator=mlp, param_grid=param_grid, cv=cv, scoring='accuracy',
+                                           n_jobs=10)
+                grid_search.fit(X, y)
+
+                ws_classifiers[char] = grid_search.best_estimator_
+                ws_scores.append(grid_search.best_score_)
+                print(
+                    f"  Letter '{char}': Best CV Accuracy = {grid_search.best_score_:.4f} | Params: {grid_search.best_params_}")
+
+            if ws_scores:
+                mean_ws_score = np.mean(ws_scores)
+                print(f"Average Accuracy for Window Size {ws}: {mean_ws_score:.4f}")
+
+                if mean_ws_score > best_overall_score:
+                    best_overall_score = mean_ws_score
+                    best_ws = ws
+                    best_fitted_classifiers = ws_classifiers
+
+        self.window_size = best_ws
+        self.classifiers = best_fitted_classifiers
+        print(f"Window size: {self.window_size} accuracy: {best_overall_score:.4f}")
+
+    def predict(self, stripped_text):
+        output_chars = list(stripped_text)
+
+        for i, char in enumerate(stripped_text):
+            if char in Model.LETTERS_NODIA and char in self.classifiers:
+                features = self._get_window_features(stripped_text, i, self.window_size).reshape(1, -1)
+                predicted_char = self.classifiers[char].predict(features)[0]
+                output_chars[i] = predicted_char
+
+        return "".join(output_chars)
 
 def main(args: argparse.Namespace) -> Optional[str]:
     if args.predict is None:
