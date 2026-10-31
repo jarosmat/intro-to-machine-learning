@@ -171,8 +171,9 @@ def main(args: argparse.Namespace) -> Optional[str]:
         X_train = train.data.split("\n")
         y_train = train.target.split("\n")
 
-        # TODO: Train a model on the given dataset and store it in `model`.
-        model = ...
+        # Train a model on the given dataset and store it in `model`.
+        model = Model(args)
+        model.fit_with_grid_search(X_train, y_train)
 
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as model_file:
