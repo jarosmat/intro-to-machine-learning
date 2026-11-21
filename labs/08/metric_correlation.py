@@ -25,6 +25,8 @@ parser.add_argument("--data_size", default=1000, type=int, help="Data set size")
 parser.add_argument("--plot", default=False, const=True, nargs="?", type=str, help="Plot the predictions")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
+
+
 # For these and any other arguments you add, ReCodEx will keep your default value.
 
 
