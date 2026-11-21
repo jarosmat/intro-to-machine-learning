@@ -68,9 +68,14 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         avg = np.average(np.fromiter((sent.human_rating for sent in sentences), int))
         human_ratings.append(avg)
 
-        # TODO: Compute TP, FP, FN counts of predicted edits in `sentences`
+        # Compute TP, FP, FN counts of predicted edits in `sentences`
         # and append them to `predictions`.
-        predictions.append(...)
+        tp, fp, fn = 0, 0, 0
+        for sent in sentences:
+            tp += sent.predicted_correct
+            fp += sent.predicted_correct - sent.predicted_edits
+            fn += sent.gold_edits - sent.predicted_correct
+        predictions.append((tp, fp, fn))
 
     # Compute Pearson correlation between F_beta score and human ratings
     # for betas between 0 and 2.
