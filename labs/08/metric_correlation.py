@@ -50,6 +50,18 @@ class ArtificialData:
             self.sentences.append(self.Sentence(gold, predicted, correct, human_rating))
 
 
+def pearson_coef(x, y):
+    avg_x = np.average(x)
+    avg_y = np.average(y)
+
+    num = sum(((x_i - avg_x) * (y_i - avg_y) for x_i, y_i in zip(x, y)))
+    x_est_var = sum((x_i - avg_x) ** 2 for x_i in x)
+    y_est_var = sum((y_i - avg_y) ** 2 for y_i in y)
+    denom = np.sqrt(x_est_var) * np.sqrt(y_est_var)
+
+    return num / denom
+
+
 def main(args: argparse.Namespace) -> tuple[float, float]:
     # Create the artificial data.
     data = ArtificialData(args)
@@ -83,11 +95,18 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     for beta in np.linspace(0, 2, 201):
         betas.append(beta)
 
-        # TODO: For each bootstrap dataset, compute the F_beta score using
+        # For each bootstrap dataset, compute the F_beta score using
         # the counts in `predictions` and then manually compute the Pearson
         # correlation between the computed scores and `human_ratings`. Append
         # the result to `correlations`.
-        correlations.append(...)
+        f_betas = []
+        for tp, fp, fn in predictions:
+            beta_squared = beta ** 2
+            one_p_bs = 1 + beta_squared
+            f_beta = (one_p_bs * tp) / (one_p_bs * tp + fp + beta_squared * fn)
+            f_betas.append(f_beta)
+
+        correlations.append(pearson_coef(human_ratings, f_betas))
 
     if args.plot:
         import matplotlib.pyplot as plt
