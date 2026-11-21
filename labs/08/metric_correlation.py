@@ -85,7 +85,7 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         tp, fp, fn = 0, 0, 0
         for sent in sentences:
             tp += sent.predicted_correct
-            fp += sent.predicted_correct - sent.predicted_edits
+            fp += sent.predicted_edits - sent.predicted_correct
             fn += sent.gold_edits - sent.predicted_correct
         predictions.append((tp, fp, fn))
 
