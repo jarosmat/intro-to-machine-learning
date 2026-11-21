@@ -115,9 +115,10 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         plt.ylabel(r"Pearson correlation of $F_\beta$-score and human ratings")
         plt.show() if args.plot is True else plt.savefig(args.plot, transparent=True, bbox_inches="tight")
 
-    # TODO: Assign the highest correlation to `best_correlation` and
+    # Assign the highest correlation to `best_correlation` and
     # store corresponding beta to `best_beta`.
-    best_beta, best_correlation = ...
+    max_corr_index = np.argmax(correlations)
+    best_beta, best_correlation = betas[max_corr_index], correlations[max_corr_index]
 
     return best_beta, best_correlation
 
